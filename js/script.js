@@ -95,13 +95,12 @@ window.addEventListener('load', function(){
                 this.speed = -5;
             }else if(input.keys.indexOf('ArrowUp') > -1){
                 if(this.onGround()) this.vy -= 15;
-                else if(!this.onGround() && !this.doubleJump && (this.y < this.gameHeight - this.height*1.5)){
+                else if(!this.onGround() && !this.doubleJump && (this.y < this.gameHeight - this.height*1.4)){
                     this.vy -= 15;
                     this.doubleJump = true;
                 }
-            }else if(this.onGround()){
-                this.doubleJump = false;
             }else{
+                if(this.onGround()) this.doubleJump = false;
                 this.speed = 0;
             }
             // 수평움직임
