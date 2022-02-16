@@ -108,7 +108,7 @@ window.addEventListener('load', function(){
                 this.speed = -5;
             }else if(input.keys.indexOf('ArrowUp') > -1){
                 if(this.onGround()) this.vy -= 12;
-                else if(!this.onGround() && !this.doubleJump && (this.y < this.gameHeight - this.height*1.2)){
+                else if(!this.onGround() && !this.doubleJump && (this.y < this.gameHeight - this.height*1.4)){
                     this.vy -= 12;
                     this.doubleJump = true;
                 }
@@ -139,11 +139,10 @@ window.addEventListener('load', function(){
                 }
                 this.vy = 0;
             }
-            if(this.y > this.gameHeight) {
+            if(this.y > this.gameHeight - this.height) {
                 this.y = this.gameHeight - this.height
                 this.doubleJump = false;
             }
-            else if(this.y < 0) this.y = 0
         }
         onGround(){
             return this.y >= this.gameHeight - this.height;
