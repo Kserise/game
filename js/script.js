@@ -4,6 +4,7 @@ window.addEventListener('load', function(){
     canvas.width = 800;
     canvas.height = 720;
     let enemies = [];
+    let monkeyEnemies = [];
     let score = 0;
     let gameOver = false;
 
@@ -36,8 +37,8 @@ window.addEventListener('load', function(){
         constructor(gameWidth, gameHeight){
             this.gameWidth = gameWidth;
             this.gameHeight = gameHeight;
-            this.width = 200;
-            this.height = 200;
+            this.width = 150;
+            this.height = 150;
             this.x = 0;
             this.y = this.gameHeight - this.height;
             this.image = document.getElementById("playerImage");
@@ -61,7 +62,19 @@ window.addEventListener('load', function(){
             context.drawImage(this.image, this.width * this.frameX, this.height * this.frameY , this.width, this.height, this.x, this.y, this.width, this.height);
             // context.drawImage(이미지, x절단좌표, y절단좌표, 절단폭, 절단높이, this.x, this.y, this.width, this.height);
         }
-        update(input, deltaTime, enemies){
+        update(input, deltaTime, enemies, enemyMonkey){
+            // monkeys
+            enemyMonkey.forEach(monkey => {
+                const dx = (monkey.x + monkey.width/2) - (this.x + this.width/2);
+                const dy = (monkey.y + monkey.height/2) - (this.y + this.height/2);
+                const distance = Math.sqrt(dx*dx+dy*dy);
+                if(distance < monkey.width*0.3 + this.width*0.3){
+                    if(!(input.keys.indexOf('ArrowDown') > -1)){
+                        gameOver = true;
+                    }
+                }
+            });
+
             // collision detection
             enemies.forEach(enemy => {
                 const dx = (enemy.x+enemy.width/2) - (this.x+this.width/2);
@@ -94,9 +107,9 @@ window.addEventListener('load', function(){
             }else if(input.keys.indexOf('ArrowLeft') > -1){
                 this.speed = -5;
             }else if(input.keys.indexOf('ArrowUp') > -1){
-                if(this.onGround()) this.vy -= 15;
-                else if(!this.onGround() && !this.doubleJump && (this.y < this.gameHeight - this.height*1.4)){
-                    this.vy -= 15;
+                if(this.onGround()) this.vy -= 12;
+                else if(!this.onGround() && !this.doubleJump && (this.y < this.gameHeight - this.height*1.2)){
+                    this.vy -= 12;
                     this.doubleJump = true;
                 }
             }else{
@@ -164,8 +177,8 @@ window.addEventListener('load', function(){
         constructor(gameWidth, gameHeight){
             this.gameWidth = gameWidth;
             this.gameHeight = gameHeight;
-            this.width = 160;
-            this.height = 119;
+            this.width = 100;
+            this.height = 74;
             this.image = document.getElementById("enemyImage");
             this.x = this.gameWidth;
             this.y = this.gameHeight - this.height;
@@ -204,7 +217,59 @@ window.addEventListener('load', function(){
         }
     }
 
+    class MonkeyEnemy {
+        constructor(gameWidth, gameHeight){
+            this.gameWidth = gameWidth;
+            this.gameHeight = gameHeight;
+            this.width = 100;
+            this.height = 100;
+            this.x = this.gameWidth;
+            this.y = this.gameHeight - this.height*1.5;
+            this.image = document.getElementById("monkeyEnemy");
+            this.fps = 10;
+            this.frameTimer = 0;
+            this.frameInterval = 1000/this.fps;
+            this.frameX = 0;
+            this.maxFrame = 4;
+            this.speed = 12;
+            this.markedForDeletion = false; 
+        }
+
+        draw(context){
+            context.drawImage(this.image, this.width*this.frameX, 0, this.width, this.height, this.x, this.y, this.width, this.height);
+        }
+
+        update(deltaTime){
+            if(this.frameTimer > this.frameInterval){
+                if(this.maxFrame > this.frameX){
+                    this.frameX++
+                }else this.frameX = 0;
+                this.frameTimer = 0;
+            }else this.frameTimer+=deltaTime;
+
+            this.x -= this.speed;
+            if(this.x < 0) this.markedForDeletion = true;
+        }
+    }
+
     // enemies.push(new Enemy(canvas.width, canvas.height));
+
+    function monkeyEnemyHandler(deltaTime){
+        if(monkeyEnemyTimer > monkeyEnemyInterval + monkeyRandomEnemyInterval){
+            const monkeyEnemy = new MonkeyEnemy(canvas.width, canvas.height);
+            const monkeySpeed = Math.floor(Math.random()*monkeyEnemy.speed);
+            if(monkeySpeed < 6) monkeyEnemy.speed = 6;
+            else monkeyEnemy.speed = monkeySpeed;
+            monkeyEnemies.push(monkeyEnemy);
+            monkeyEnemyTimer = 0;
+        }else monkeyEnemyTimer+=deltaTime;
+
+        monkeyEnemies.forEach((monkey) => {
+            monkey.draw(ctx);
+            monkey.update(deltaTime);
+        });
+        monkeyEnemies = monkeyEnemies.filter((monkey) => !monkey.markedForDeletion);
+    }
 
     function handleEnemies(deltaTime){
         if(enemyTimer > enemyInterval + randomEnemyInterval){
@@ -236,11 +301,16 @@ window.addEventListener('load', function(){
             context.fillText('GAME OVER, try again!', canvas.width/2 + 2, 202);
         }
     }
-
+    // enemy
     let lastTime = 0;
     let enemyTimer = 0;
     let enemyInterval = 1000;
     let randomEnemyInterval = Math.random() * 1000 + 500;
+
+    //monkeyenemy
+    let monkeyEnemyTimer = 0;
+    let monkeyEnemyInterval = 3000;
+    let monkeyRandomEnemyInterval = Math.random() * 1000 + 500;
 
     const input = new InputHandler();
     const player = new Player(canvas.width, canvas.height);
@@ -252,8 +322,9 @@ window.addEventListener('load', function(){
         background.draw(ctx);
         background.update();
         player.draw(ctx);
-        player.update(input, deltaTime, enemies);
+        player.update(input, deltaTime, enemies, monkeyEnemies);
         handleEnemies(deltaTime);
+        monkeyEnemyHandler(deltaTime);
         displayStatusText(ctx);
         if(!gameOver) requestAnimationFrame(animate);
     }
