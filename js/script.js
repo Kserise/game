@@ -84,7 +84,7 @@ window.addEventListener('load', function(){
                     if(0 < enemy.y - (this.y+81)){
                         enemy.markedForDeletion = true;
                         score+=100;
-                    }else if(input.keys.indexOf('a') > -1){
+                    }else if(this.frameY == 3){
                         enemy.switch = true;
                     }else {
                         gameOver = true;
