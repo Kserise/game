@@ -14,7 +14,8 @@ window.addEventListener('load', function(){
                 if((e.key === 'ArrowDown' || 
                     e.key === 'ArrowUp' || 
                     e.key === 'ArrowLeft' || 
-                    e.key === 'ArrowRight') 
+                    e.key === 'ArrowRight' || 
+                    e.key === 'a') 
                     && this.keys.indexOf(e.key) === -1){
                     this.keys.push(e.key);
                 }
@@ -23,7 +24,8 @@ window.addEventListener('load', function(){
                 if((e.key === 'ArrowDown' || 
                     e.key === 'ArrowUp' || 
                     e.key === 'ArrowLeft' || 
-                    e.key === 'ArrowRight')){
+                    e.key === 'ArrowRight' || 
+                    e.key === 'a')){
                     this.keys.splice(this.keys.indexOf(e.key), 1);
                 }
             });
@@ -42,7 +44,7 @@ window.addEventListener('load', function(){
             this.frameX = 0;
             this.maxFrame = 5;
             this.frameY = 0;
-            this.fps = 15;
+            this.fps = 10;
             this.frameTimer = 0;
             this.frameInterval = 1000/this.fps;
             this.speed = 0;
@@ -64,14 +66,19 @@ window.addEventListener('load', function(){
                 const dx = (enemy.x+enemy.width/2) - (this.x+this.width/2);
                 const dy = (enemy.y+enemy.height/2) - (this.y+this.height/2);
                 const distance = Math.sqrt(dx * dx + dy * dy);
-                if(distance < enemy.width/2 + this.width/2){
-                    gameOver = true;
+                if(distance < enemy.width*0.3 + this.width*0.3){
+                    if(0 < enemy.y - (this.y+81) || input.keys.indexOf('a') > -1){
+                        enemy.markedForDeletion = true;
+                    }else {
+                        gameOver = true;
+                    }
                 }
             })
             // sprite animation
             if(this.frameTimer > this.frameInterval){
-                if(this.frameX >= this.maxFrame) this.frameX = 0;
-                else this.frameX++;
+                if(this.frameX >= this.maxFrame) {
+                    this.frameX = 0;
+                }else this.frameX++;
                 this.frameTimer = 0;
             }else {
                 this.frameTimer += deltaTime;
@@ -83,7 +90,7 @@ window.addEventListener('load', function(){
             }else if(input.keys.indexOf('ArrowLeft') > -1){
                 this.speed = -5;
             }else if(input.keys.indexOf('ArrowUp') > -1 && this.onGround()){
-                this.vy -= 32;
+                this.vy -= 15;
             }else {
                 this.speed = 0;
             }
@@ -98,9 +105,17 @@ window.addEventListener('load', function(){
                 this.maxFrame = 2;
                 this.frameY = 1;
             }else {
+                if(input.keys.indexOf('ArrowDown') > -1){
+                    this.maxFrame = 2;
+                    this.frameY = 2;
+                }else if(input.keys.indexOf('a') > -1){
+                    this.maxFrame = 3;
+                    this.frameY = 3;
+                }else {
+                    this.maxFrame = 4;
+                    this.frameY = 0;
+                }
                 this.vy = 0;
-                this.maxFrame = 4;
-                this.frameY = 0;
             }
             if(this.y > this.gameHeight) this.y = this.gameHeight - this.height;
         }
