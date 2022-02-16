@@ -67,9 +67,11 @@ window.addEventListener('load', function(){
                 const dy = (enemy.y+enemy.height/2) - (this.y+this.height/2);
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 if(distance < enemy.width*0.3 + this.width*0.3){
-                    if(0 < enemy.y - (this.y+81) || input.keys.indexOf('a') > -1){
+                    if(0 < enemy.y - (this.y+81)){
                         enemy.markedForDeletion = true;
                         score+=100;
+                    }else if(input.keys.indexOf('a') > -1){
+                        enemy.switch = true;
                     }else {
                         gameOver = true;
                     }
@@ -164,6 +166,7 @@ window.addEventListener('load', function(){
             this.frameInterval = 1000/this.fps;
             this.speed = 12;
             this.markedForDeletion = false;
+            this.switch = false;
         }
         draw(context){
             // context.strokeStyle = 'white';
@@ -181,9 +184,10 @@ window.addEventListener('load', function(){
             }else {
                 this.frameTimer += deltaTime;
             }
-            
-            this.x -= this.speed;
-            if(this.x < 0  - this.width){
+            if(!this.switch) this.x -= this.speed;
+            else this.x += this.speed*2;
+
+            if(this.x < 0  - this.width || this.x > this.gameWidth+this.width){
                 this.markedForDeletion = true;
                 score+=100;
             }
