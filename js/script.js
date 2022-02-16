@@ -225,7 +225,7 @@ window.addEventListener('load', function(){
 
     let lastTime = 0;
     let enemyTimer = 0;
-    let enemyInterval = 2000;
+    let enemyInterval = 1500;
     let randomEnemyInterval = Math.random() * 1000 + 500;
 
     const input = new InputHandler();
