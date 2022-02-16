@@ -2,7 +2,7 @@ window.addEventListener('load', function(){
     const canvas = document.getElementById("canvas1");
     const ctx = canvas.getContext('2d');
     canvas.width = 800;
-    canvas.height = 720;
+    canvas.height = 500;
     let enemies = [];
     let monkeyEnemies = [];
     let score = 0;
@@ -158,7 +158,7 @@ window.addEventListener('load', function(){
             this.x = 0;
             this.y = 0;
             this.width = 2400;
-            this.height = 720;
+            this.height = 500;
             this.speed = 7;
         }
         draw(context){
