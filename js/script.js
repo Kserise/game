@@ -40,9 +40,9 @@ window.addEventListener('load', function(){
             this.y = this.gameHeight - this.height;
             this.image = document.getElementById("playerImage");
             this.frameX = 0;
-            this.maxFrame = 8;
+            this.maxFrame = 5;
             this.frameY = 0;
-            this.fps = 20;
+            this.fps = 15;
             this.frameTimer = 0;
             this.frameInterval = 1000/this.fps;
             this.speed = 0;
@@ -95,11 +95,11 @@ window.addEventListener('load', function(){
             this.y += this.vy;
             if(!this.onGround()){
                 this.vy += this.weight;
-                this.maxFrame = 5;
+                this.maxFrame = 2;
                 this.frameY = 1;
             }else {
                 this.vy = 0;
-                this.maxFrame = 8;
+                this.maxFrame = 4;
                 this.frameY = 0;
             }
             if(this.y > this.gameHeight) this.y = this.gameHeight - this.height;
