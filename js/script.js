@@ -50,6 +50,7 @@ window.addEventListener('load', function(){
             this.speed = 0;
             this.vy = 0;
             this.weight = 1;
+            this.doubleJump = false;
         }
         draw(context){
             // context.strokeStyle = 'black';
@@ -92,9 +93,15 @@ window.addEventListener('load', function(){
                 this.speed = 5;
             }else if(input.keys.indexOf('ArrowLeft') > -1){
                 this.speed = -5;
-            }else if(input.keys.indexOf('ArrowUp') > -1 && this.onGround()){
-                this.vy -= 15;
-            }else {
+            }else if(input.keys.indexOf('ArrowUp') > -1){
+                if(this.onGround()) this.vy -= 15;
+                else if(!this.onGround() && !this.doubleJump && (this.y < this.gameHeight - this.height*1.5)){
+                    this.vy -= 15;
+                    this.doubleJump = true;
+                }
+            }else if(this.onGround()){
+                this.doubleJump = false;
+            }else{
                 this.speed = 0;
             }
             // 수평움직임
@@ -120,7 +127,11 @@ window.addEventListener('load', function(){
                 }
                 this.vy = 0;
             }
-            if(this.y > this.gameHeight) this.y = this.gameHeight - this.height;
+            if(this.y > this.gameHeight) {
+                this.y = this.gameHeight - this.height
+                this.doubleJump = false;
+            }
+            else if(this.y < 0) this.y = 0
         }
         onGround(){
             return this.y >= this.gameHeight - this.height;
