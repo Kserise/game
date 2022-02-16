@@ -69,6 +69,7 @@ window.addEventListener('load', function(){
                 if(distance < enemy.width*0.3 + this.width*0.3){
                     if(0 < enemy.y - (this.y+81) || input.keys.indexOf('a') > -1){
                         enemy.markedForDeletion = true;
+                        score+=100;
                     }else {
                         gameOver = true;
                     }
