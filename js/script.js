@@ -5,6 +5,8 @@ window.addEventListener('load', function(){
     canvas.height = 500;
     let enemies = [];
     let monkeyEnemies = [];
+    let bullets = [];
+    let bosses = [];
     let score = 0;
     let gameOver = false;
 
@@ -16,7 +18,8 @@ window.addEventListener('load', function(){
                     e.key === 'ArrowUp' || 
                     e.key === 'ArrowLeft' || 
                     e.key === 'ArrowRight' || 
-                    e.key === 'a') 
+                    e.key === 'a' ||
+                    e.key === 's') 
                     && this.keys.indexOf(e.key) === -1){
                     this.keys.push(e.key);
                 }
@@ -26,7 +29,8 @@ window.addEventListener('load', function(){
                     e.key === 'ArrowUp' || 
                     e.key === 'ArrowLeft' || 
                     e.key === 'ArrowRight' || 
-                    e.key === 'a')){
+                    e.key === 'a' ||
+                    e.key === 's')){
                     this.keys.splice(this.keys.indexOf(e.key), 1);
                 }
             });
@@ -52,6 +56,8 @@ window.addEventListener('load', function(){
             this.vy = 0;
             this.weight = 1;
             this.doubleJump = false;
+            this.bulletTimer = 0;
+            this.bulletDelay = 10000/this.fps;
         }
         draw(context){
             // context.strokeStyle = 'black';
@@ -62,7 +68,18 @@ window.addEventListener('load', function(){
             context.drawImage(this.image, this.width * this.frameX, this.height * this.frameY , this.width, this.height, this.x, this.y, this.width, this.height);
             // context.drawImage(이미지, x절단좌표, y절단좌표, 절단폭, 절단높이, this.x, this.y, this.width, this.height);
         }
-        update(input, deltaTime, enemies, enemyMonkey){
+        update(input, deltaTime, enemies, enemyMonkey, bosses){
+            // boss 
+
+            bosses.forEach(boss => {
+                const dx = (boss.x + boss.width/2) - (this.x + this.width/2);
+                const dy = (boss.y + boss.height/2) - (this.y + this.height/2);
+                const distance = Math.sqrt(dx*dx+dy*dy);
+                if(distance < boss.width*0.3 + this.width*0.3){
+                    gameOver = true;
+                }
+            });
+
             // monkeys
             enemyMonkey.forEach(monkey => {
                 const dx = (monkey.x + monkey.width/2) - (this.x + this.width/2);
@@ -84,6 +101,7 @@ window.addEventListener('load', function(){
                     if(0 < enemy.y - (this.y+81)){
                         enemy.markedForDeletion = true;
                         score+=100;
+                        bossTimer++;
                     }else if(this.frameY == 3){
                         enemy.switch = true;
                     }else {
@@ -133,6 +151,9 @@ window.addEventListener('load', function(){
                 }else if(input.keys.indexOf('a') > -1){
                     this.maxFrame = 3;
                     this.frameY = 3;
+                }else if(input.keys.indexOf('s') > -1){
+                    this.maxFrame = 3;
+                    this.frameY = 4;
                 }else {
                     this.maxFrame = 4;
                     this.frameY = 0;
@@ -212,6 +233,7 @@ window.addEventListener('load', function(){
             if(this.x < 0  - this.width || this.x > this.gameWidth+this.width){
                 this.markedForDeletion = true;
                 score+=100;
+                bossTimer++;
             }
         }
     }
@@ -247,11 +269,126 @@ window.addEventListener('load', function(){
             }else this.frameTimer+=deltaTime;
 
             this.x -= this.speed;
-            if(this.x < 0) this.markedForDeletion = true;
+            if(this.x < 0){
+                this.markedForDeletion = true;
+                score+=100;
+                bossTimer++;
+            }
+        }
+    }
+
+    class Boss {
+        constructor(gameWidth, gameHeight){
+            this.gameWidth = gameWidth;
+            this.gameHeight = gameHeight;
+            this.width = 400;
+            this.height = 400;
+            this.x = this.gameWidth + this.width;
+            this.y = this.gameHeight - this.height;
+            this.frameX = 0;
+            this.maxFrame = 5;
+            this.fps = 15;
+            this.frameTimer = 0;
+            this.frameInterval = 1000/this.fps;
+            this.speed = 1;
+            this.hp = 100;
+            this.markedForDeletion = false;
+        }
+
+        draw(context){
+            context.fillRect(this.x, this.y, this.width, this.height);
+        }
+        update(bullets){
+            bullets.forEach(bullet => {
+                const dx = (bullet.x + bullet.width/2) - (this.x + this.width/2);
+                const dy = (bullet.y + bullet.height/2) - (this.y + this.height/2);
+                const distance = Math.sqrt(dx*dx+dy*dy);
+                if(distance < bullet.width/2 + this.width/2){
+                    bullet.markedForDeletion = true;
+                    this.hp-=10;
+                    this.x+=3;
+                }
+            });
+            if(this.hp <= 0){
+                this.markedForDeletion = true;
+                score+=5000;
+            }
+            this.x-=this.speed;
+        }
+    }
+
+    class Bullet {
+        constructor(gameWidth, gameHeight){
+            this.gameWidth = gameWidth;
+            this.gameHeight = gameHeight;
+            this.width = 25;
+            this.height = 27;
+            this.x = 0
+            this.y = 0
+            this.image = document.getElementById("bullet");
+            this.frameX = 0
+            this.maxFrame = 1;
+            this.fps = 1;
+            this.frameTimer = 0;
+            this.frameInterval = 1000/this.fps;
+            this.speed = 10;
+            this.markedForDeletion = false;
+        }
+
+        draw(context){
+            context.drawImage(this.image, this.width*this.frameX, 0, this.width, this.height, this.x, this.y, this.width, this.height);
+        }
+
+        update(timeStamp){
+            if(this.frameTimer > this.frameInterval){
+                if(this.frameX < this.maxFrame){
+                    this.frameX++;
+                }else this.frameX = 0;
+                this.frameTimer = 0;
+            }else this.frameTimer+=timeStamp;
+            if(this.x > this.gameWidth) this.markedForDeletion = true;
+
+            this.x += this.speed;
         }
     }
 
     // enemies.push(new Enemy(canvas.width, canvas.height));
+
+    function bossHandler(timeStamp){
+        if(bossTimer == 20){
+            const boss = new Boss(canvas.width, canvas.height);
+            boss.hp = boss.hp+(bossLv*40);
+            bosses.push(boss);
+            bossTimer = 0;
+            bossLv++;
+        }
+
+        bosses.forEach(boss => {
+            boss.draw(ctx);
+            boss.update(bullets);
+        });
+
+        bosses = bosses.filter(boss => !boss.markedForDeletion);
+    }
+
+    function bulletHandler(timeStamp, player, input){
+        if(input.keys.indexOf('s') > -1){
+            if(bulletTimer > bulletInterval){
+                const bullet = new Bullet(canvas.width, canvas.height);
+                bullet.x = player.x+player.width;
+                bullet.y = player.y+(player.height/2);
+                bullets.push(bullet);
+                bulletTimer = 0;
+            }else bulletTimer+=timeStamp;
+        }
+
+        bullets.forEach((bullet) => {
+            bullet.draw(ctx);
+            bullet.update(timeStamp);
+        });
+
+        bullets = bullets.filter((bullet) => !bullet.markedForDeletion);
+    }
 
     function monkeyEnemyHandler(deltaTime){
         if(monkeyEnemyTimer > monkeyEnemyInterval + monkeyRandomEnemyInterval){
@@ -300,6 +437,13 @@ window.addEventListener('load', function(){
             context.fillText('GAME OVER, try again!', canvas.width/2 + 2, 202);
         }
     }
+    // bossTimer 
+    let bossTimer = 0;
+    let bossLv = 0;
+    // bullet
+    let bulletTimer = 0;
+    let bulletInterval = 400;
+
     // enemy
     let lastTime = 0;
     let enemyTimer = 0;
@@ -314,6 +458,7 @@ window.addEventListener('load', function(){
     const input = new InputHandler();
     const player = new Player(canvas.width, canvas.height);
     const background = new Background(canvas.width, canvas.height);
+
     function animate(timeStamp){
         const deltaTime = timeStamp - lastTime;
         lastTime = timeStamp;
@@ -321,9 +466,11 @@ window.addEventListener('load', function(){
         background.draw(ctx);
         background.update();
         player.draw(ctx);
-        player.update(input, deltaTime, enemies, monkeyEnemies);
+        player.update(input, deltaTime, enemies, monkeyEnemies, bosses);
+        bossHandler(deltaTime);
         handleEnemies(deltaTime);
         monkeyEnemyHandler(deltaTime);
+        bulletHandler(deltaTime, player, input)
         displayStatusText(ctx);
         if(!gameOver) requestAnimationFrame(animate);
     }
