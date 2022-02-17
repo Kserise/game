@@ -7,6 +7,7 @@ window.addEventListener('load', function(){
     let monkeyEnemies = [];
     let bullets = [];
     let bosses = [];
+    let items = [];
     let score = 0;
     let gameOver = false;
 
@@ -56,8 +57,7 @@ window.addEventListener('load', function(){
             this.vy = 0;
             this.weight = 1;
             this.doubleJump = false;
-            this.bulletTimer = 0;
-            this.bulletDelay = 10000/this.fps;
+            this.lastBullet = 0;
         }
         draw(context){
             // context.strokeStyle = 'black';
@@ -68,9 +68,21 @@ window.addEventListener('load', function(){
             context.drawImage(this.image, this.width * this.frameX, this.height * this.frameY , this.width, this.height, this.x, this.y, this.width, this.height);
             // context.drawImage(이미지, x절단좌표, y절단좌표, 절단폭, 절단높이, this.x, this.y, this.width, this.height);
         }
-        update(input, deltaTime, enemies, enemyMonkey, bosses){
+        update(input, deltaTime, enemies, enemyMonkey, bosses, items){
+            if(this.lastBullet <= 0){
+                weapon = 'normal';
+            }
+            items.forEach(item => {
+                const dx = (item.x + item.width/2) - (this.x + this.width/2);
+                const dy = (item.y + item.height/2) - (this.y + this.height/2);
+                const distance = Math.sqrt(dx*dx+dy*dy);
+                if(distance < item.width/2 + this.width/2){
+                    item.markedForDeletion = true;
+                    this.lastBullet += 30; 
+                    weapon = "banana";
+                }
+            });
             // boss 
-
             bosses.forEach(boss => {
                 const dx = (boss.x + boss.width/2) - (this.x + this.width/2);
                 const dy = (boss.y + boss.height/2) - (this.y + this.height/2);
@@ -108,6 +120,11 @@ window.addEventListener('load', function(){
                         gameOver = true;
                     }
                 }
+                if(enemy.x < 0 - enemy.width){
+                    enemy.markedForDeletion = true;
+                    score+=100;
+                    bossTimer++;
+                }
             })
             // sprite animation
             if(this.frameTimer > this.frameInterval){
@@ -124,12 +141,8 @@ window.addEventListener('load', function(){
                 this.speed = 5;
             }else if(input.keys.indexOf('ArrowLeft') > -1){
                 this.speed = -5;
-            }else if(input.keys.indexOf('ArrowUp') > -1){
-                if(this.onGround()) this.vy -= 12;
-                else if(!this.onGround() && !this.doubleJump && (this.y < this.gameHeight - this.height*1.4)){
-                    this.vy -= 12;
-                    this.doubleJump = true;
-                }
+            }else if(input.keys.indexOf('ArrowUp') > -1 && this.onGround()){
+                this.vy -= 18;
             }else{
                 if(this.onGround()) this.doubleJump = false;
                 this.speed = 0;
@@ -162,7 +175,6 @@ window.addEventListener('load', function(){
             }
             if(this.y > this.gameHeight - this.height) {
                 this.y = this.gameHeight - this.height
-                this.doubleJump = false;
             }
         }
         onGround(){
@@ -177,7 +189,7 @@ window.addEventListener('load', function(){
             this.image = document.getElementById('backgroundImage');
             this.x = 0;
             this.y = 0;
-            this.width = 2400;
+            this.width = 2714;
             this.height = 500;
             this.speed = 7;
         }
@@ -210,6 +222,7 @@ window.addEventListener('load', function(){
             this.speed = 12;
             this.markedForDeletion = false;
             this.switch = false;
+            this.hp = 16;
         }
         draw(context){
             // context.strokeStyle = 'white';
@@ -219,7 +232,23 @@ window.addEventListener('load', function(){
             // context.stroke();
             context.drawImage(this.image, this.width * this.frameX, 0, this.width, this.height, this.x, this.y, this.width, this.height);
         }
-        update(deltaTime){
+        update(deltaTime, bullets){
+            bullets.forEach(bullet => {
+                const dx = (bullet.x + bullet.width/2) - (this.x + this.width/2);
+                const dy = (bullet.y + bullet.height/2) - (this.y + this.height/2);
+                const distance = Math.sqrt(dx*dx+dy*dy);
+                if(distance < bullet.width/2 + this.width/2){
+                    this.x+=this.speed*3;
+                    this.hp -= bullet.damage;
+                    bullet.markedForDeletion = true;
+                    if(this.hp <= 0){
+                        this.markedForDeletion = true;
+                        score+=100;
+                        bossTimer++;
+                    }
+                }
+            });
+
             if(this.frameTimer > this.frameInterval){
                 if(this.frameX >= this.maxFrame) this.frameX = 0;
                 else this.frameX++;
@@ -238,6 +267,144 @@ window.addEventListener('load', function(){
         }
     }
 
+    class Munzy {
+        constructor(gameWidth, gameHeight){
+            this.gameWidth = gameWidth;
+            this.gameHeight = gameHeight;
+            this.width = 100;
+            this.height = 100;
+            this.x = this.gameWidth + this.width;
+            this.y = this.gameHeight - this.height;
+            this.image = document.getElementById("munzy");
+            this.fps = 10;
+            this.frameTimer = 0;
+            this.frameInterval = 1000/this.fps;
+            this.frameX = 0;
+            this.frameY = 0;
+            this.maxFrame = 5;
+            this.speed = 3;
+            this.hp = 100;
+            this.hit = false;
+        }
+
+        draw(context){
+            context.drawImage(this.image, this.width*this.frameX, this.height*this.frameY, this.width, this.height, this.x, this.y, this.width, this.height);
+        }
+
+        update(timeStamp, bullets){
+            bullets.forEach(bullet => {
+                const dx = (bullet.x + bullet.width/2) - (this.x + this.width/2);
+                const dy = (bullet.y + bullet.height/2) - (this.y + this.height/2);
+                const distance = Math.sqrt(dx*dx+dy*dy);
+                if(distance < bullet.width*0.3 + this.width*0.3){
+                    this.frameX = 0;
+                    this.hit = true;
+                    this.hp-=bullet.damage;
+                    this.x+=this.speed*5;
+                    bullet.markedForDeletion = true;
+                    if(this.hp <= 0){
+                        this.markedForDeletion = true;
+                    }
+                }
+            });
+            if(this.frameTimer > this.frameInterval){
+                if(this.hit){
+                    this.frameY = 1;
+                    this.maxFrame = 3;
+                }else {
+                    this.frameY = 0;
+                    this.maxFrame = 5;
+                }
+
+                if(this.frameX >= this.maxFrame){
+                    if(this.hit) this.hit = false;
+                    this.frameX = 0;
+                }else this.frameX++;
+                this.frameTimer = 0;
+            }else this.frameTimer+=timeStamp;
+            this.x-=this.speed;
+        }
+    }
+
+    class Kirby {
+        constructor(gameWidth, gameHeight){
+            this.gameWidth = gameWidth;
+            this.gameHeight = gameHeight;
+            this.width = 100;
+            this.height = 100;
+            this.x = this.gameWidth + this.width;
+            this.y = this.gameHeight - this.height*3;
+            this.vy = 0;
+            this.image = document.getElementById("kirby");
+            this.fps = 10;
+            this.frameTimer = 0;
+            this.frameInterval = 1000/this.fps;
+            this.frameX = 0;
+            this.frameY = 0;
+            this.maxFrame = 3;
+            this.speed = 3;
+            this.hp = 24;
+            this.hit = false;
+        }
+
+        draw(context){
+            context.drawImage(this.image, this.width*this.frameX, this.height*this.frameY, this.width, this.height, this.x, this.y, this.width, this.height);
+        }
+
+        update(timeStamp, bullets){
+            bullets.forEach(bullet => {
+                const dx = (bullet.x + bullet.width/2) - (this.x + this.width/2);
+                const dy = (bullet.y + bullet.height/2) - (this.y + this.height/2);
+                const distance = Math.sqrt(dx*dx+dy*dy);
+                if(distance < bullet.width*0.3 + this.width*0.3){
+                    this.frameX = 0;
+                    this.hp-=bullet.damage;
+                    this.x+=this.speed*5;
+                    this.hit = true;
+                    this.vy = 8;
+                    this.frameY = 1;
+                    bullet.markedForDeletion = true;
+                    if(this.hp <= 0){
+                        score+=200;
+                        this.markedForDeletion = true;
+                        bossTimer++;
+                    }
+                }
+            });
+            if(this.frameTimer > this.frameInterval){
+                if(this.hit){
+                    if(this.frameY === 0){
+                        this.frameY = 2;
+                    }else {
+                        this.frameY = 3;
+                    };
+                    this.maxFrame = 1;
+                    
+                }else {
+                    if(this.y <= this.gameHeight - this.height*3){
+                        this.frameY = 0;
+                        this.maxFrame = 3;
+                    }else {
+                        this.frameY = 1;
+                        this.maxFrame = 7;
+                    }
+                }
+
+                if(this.frameX >= this.maxFrame){
+                    if(this.hit) this.hit = false;
+                    this.frameX = 0;
+                }else this.frameX++;
+                this.frameTimer = 0;
+            }else this.frameTimer+=timeStamp;
+            this.x-=this.speed;
+            this.y+=this.vy;
+            if(this.y > this.gameHeight - this.height){
+                this.y = this.gameHeight - this.height;
+            }
+        }
+
+    }
+
     class MonkeyEnemy {
         constructor(gameWidth, gameHeight){
             this.gameWidth = gameWidth;
@@ -254,13 +421,30 @@ window.addEventListener('load', function(){
             this.maxFrame = 4;
             this.speed = 12;
             this.markedForDeletion = false; 
+            this.hp = 32;
         }
 
         draw(context){
             context.drawImage(this.image, this.width*this.frameX, 0, this.width, this.height, this.x, this.y, this.width, this.height);
         }
 
-        update(deltaTime){
+        update(deltaTime, bullets){
+            bullets.forEach(bullet => {
+                const dx = (bullet.x + bullet.width/2) - (this.x + this.width/2);
+                const dy = (bullet.y + bullet.height/2) - (this.y + this.height/2);
+                const distance = Math.sqrt(dx*dx+dy*dy);
+                if(distance < bullet.width/2 + this.width/2){
+                    if(!(bullet.weapon === "normal")){
+                        this.hp-=bullet.damage;
+                        this.x += this.speed*5;
+                        bullet.markedForDeletion = true;
+                        if(this.hp <= 0){
+                            this.markedForDeletion = true; 
+                        }
+                    }
+                }
+            });
+
             if(this.frameTimer > this.frameInterval){
                 if(this.maxFrame > this.frameX){
                     this.frameX++
@@ -300,7 +484,10 @@ window.addEventListener('load', function(){
 
         draw(context){
             context.drawImage(this.image, this.width*this.frameX, this.height*this.frameY, this.width, this.height, this.x, this.y, this.width, this.height)
+            context.fillStyle = 'red';
+            context.fillRect((this.x+this.width/2) - this.hp/2, this.y, this.hp, 20);
         }
+
         update(timeStamp, bullets){
 
             bullets.forEach(bullet => {
@@ -311,7 +498,7 @@ window.addEventListener('load', function(){
                     bullet.markedForDeletion = true;
                     this.hit = true;
                     this.frameX = 0;
-                    this.hp-=10;
+                    this.hp-=bullet.damage;
                     this.x+=8;
                 }
             });
@@ -343,6 +530,80 @@ window.addEventListener('load', function(){
         }
     }
 
+    class Taxi {
+        constructor(gameWidth, gameHeight){
+            this.gameWidth = gameWidth;
+            this.gameHeight = gameHeight;
+            this.width = 300;
+            this.height = 180;
+            this.x = this.gameWidth + this.width;
+            this.y = this.gameHeight - this.height;
+            this.image = document.getElementById("taxi");
+            this.frameX = 0;
+            this.frameY = 0;
+            this.maxFrame = 10;
+            this.fps = 8;
+            this.frameTimer = 0;
+            this.frameInterval = 1000/this.fps;
+            this.markedForDeletion = false;
+            this.hit = false;
+            this.speed = 0.8;
+            this.hp = 250;
+        }
+
+        draw(context){
+            context.drawImage(this.image, this.width*this.frameX,  this.height*this.frameY, this.width, this.height, this.x, this.y, this.width, this.height);
+            context.fillStyle = 'red';
+            context.fillRect((this.x+this.width/2) - this.hp/2, this.y, this.hp, 20);
+        }
+
+        update(timeStamp, bullets){
+            this.x -= this.speed;
+
+            if(this.frameTimer > this.frameInterval){
+                if(this.hp <= 175){
+                    if(this.hit){
+                        this.frameY = 3;
+                        this.maxFrame = 3;
+                    }else {
+                        this.frameY = 1;
+                        this.maxFrame = 7;
+                    }
+                }else {
+                    if(this.hit){
+                        this.frameY = 2;
+                        this.maxFrame = 3;
+                    }else {
+                        this.frameY = 0;
+                        this.maxFrame = 10;
+                    }
+                }
+
+                if(this.frameX >= this.maxFrame){
+                    if(this.hit) this.hit = false;
+                    this.frameX = 0;
+                    this.frameTimer = 0;
+                }else this.frameX++;
+            }else this.frameTimer+=timeStamp;
+
+            bullets.forEach(bullet => {
+                const dx = (bullet.x + bullet.width/2) - (this.x + this.width/2);
+                const dy = (bullet.y + bullet.height/2) - (this.y + this.height/2);
+                const distance = Math.sqrt(dx*dx+dy*dy);
+                if(distance < bullet.width/2 + this.width/2){
+                    this.x += this.speed*5
+                    this.hit = true;
+                    this.frameX = 0;
+                    this.hp-=bullet.damage;
+                    bullet.markedForDeletion = true;
+                    if(this.hp <= 0){
+                        this.markedForDeletion = true;
+                    }
+                }
+            })
+        }
+    }
+    
     class Bullet {
         constructor(gameWidth, gameHeight){
             this.gameWidth = gameWidth;
@@ -352,17 +613,20 @@ window.addEventListener('load', function(){
             this.x = 0
             this.y = 0
             this.image = document.getElementById("bullet");
-            this.frameX = 0
+            this.frameX = 0;
+            this.frameY = 0;
             this.maxFrame = 1;
-            this.fps = 1;
+            this.fps = 15;
             this.frameTimer = 0;
             this.frameInterval = 1000/this.fps;
             this.speed = 10;
             this.markedForDeletion = false;
+            this.weapon = "normal";
+            this.damage = 8+bossLv;
         }
 
         draw(context){
-            context.drawImage(this.image, this.width*this.frameX, 0, this.width, this.height, this.x, this.y, this.width, this.height);
+            context.drawImage(this.image, this.width*this.frameX, this.height*this.frameY, this.width, this.height, this.x, this.y, this.width, this.height);
         }
 
         update(timeStamp){
@@ -378,17 +642,96 @@ window.addEventListener('load', function(){
         }
     }
 
-    // enemies.push(new Enemy(canvas.width, canvas.height));
-
-    function bossHandler(timeStamp){
-        if(bossTimer == 12){
-            const boss = new Boss(canvas.width, canvas.height);
-            boss.hp = boss.hp+(bossLv*40);
-            bosses.push(boss);
-            bossTimer = 0;
-            bossLv++;
+    class Items {
+        constructor(gameWidth, gameHeight){
+            this.gameWidth = gameWidth;
+            this.gameHeight = gameHeight;
+            this.width = 80;
+            this.height = 80;
+            this.x = this.gameWidth;
+            this.y = this.gameHeight - this.height*3;
+            this.image = document.getElementById("items");
+            this.fps = 10;
+            this.frameInterval = 1000/this.fps;
+            this.frameTimer = 0;
+            this.frameX = 0;
+            this.frameY = 0;
+            this.maxFrame = 2;
+            this.speed = 3;
+            this.markedForDeletion = false;
         }
 
+        draw(context){
+            context.drawImage(this.image, this.width*this.frameX, this.height*this.frameY, this.width, this.height, this.x, this.y, this.width, this.height);
+        }
+
+        update(timeStamp){
+            if(this.frameTimer > this.frameInterval){
+                if(this.frameX >= this.maxFrame){
+                    this.frameX = 0;
+                }else{
+                    this.frameX++;
+                }
+                this.frameTimer = 0;
+            }else{
+                this.frameTimer+=timeStamp;
+            }
+            this.x -= this.speed;
+        }
+    }
+
+    // enemies.push(new Enemy(canvas.width, canvas.height));
+
+
+    function kirbyHandler(timeStamp){
+        if(bossLv >= 0 && (kirbyTimer > (monkeyEnemyInterval*2) + (monkeyRandomEnemyInterval*2))){
+            if(bossLv >= 0){
+                const kirby = new Kirby(canvas.width, canvas.height);
+                enemies.push(kirby);
+            }
+            kirbyTimer = 0;
+        }else kirbyTimer+=timeStamp;
+    }
+
+    function munzyHandler(timeStamp){
+        if(bossLv > 2 && (munzyTimer > (monkeyEnemyInterval) + (monkeyRandomEnemyInterval*2))){
+            if(bossLv >= 0){
+                const munzy = new Munzy(canvas.width, canvas.height);
+                enemies.push(munzy);
+            }
+            munzyTimer = 0;
+        }else munzyTimer+=timeStamp;
+    }
+
+    function itemsHandler(timeStamp){
+        //(monkeyEnemyInterval*3) + (monkeyRandomEnemyInterval*5)
+        if(itemsTimer > (monkeyEnemyInterval*4) + (monkeyRandomEnemyInterval*5)){
+            const item = new Items(canvas.width, canvas.height);
+            items.push(item);
+            itemsTimer = 0;
+        }else itemsTimer+=timeStamp;
+        
+        items.forEach(item => {
+            item.draw(ctx);
+            item.update(timeStamp);
+        });
+
+        items = items.filter(item => !item.markedForDeletion);
+    }
+
+    function bossHandler(timeStamp){
+        if(bossTimer >= 20){
+            let boss;
+            bossLv++;
+            if(bossLv%3) {
+                boss = new Boss(canvas.width, canvas.height);
+            }else {
+                boss = new Taxi(canvas.width, canvas.height);
+            }
+            boss.hp = boss.hp+(bossLv*20);
+            bosses.push(boss);
+            bossTimer = 0;
+        }
         bosses.forEach(boss => {
             boss.draw(ctx);
             boss.update(timeStamp, bullets);
@@ -400,9 +743,29 @@ window.addEventListener('load', function(){
     function bulletHandler(timeStamp, player, input){
         if(input.keys.indexOf('s') > -1){
             if(bulletTimer > bulletInterval){
+                console.log(bulletInterval);
                 const bullet = new Bullet(canvas.width, canvas.height);
                 bullet.x = player.x+player.width;
                 bullet.y = player.y+(player.height/2);
+                if(weapon === "banana"){
+                    bullet.weapon = weapon;
+                    bullet.damage = 16;
+                    bullet.frameY = 1;
+                    bullet.maxFrame = 2;
+                    bulletInterval = 100;
+                }else if(weapon === 'normal'){
+                    bullet.damage = 8;
+                    bullet.frameY = 0;
+                    bullet.maxFrame = 1;
+                    bulletInterval = 400 - bossLv*(400*0.1);
+                    if(bulletInterval <= 200){
+                        bulletInterval = 200;
+                    }
+                }
+                if(!(weapon === "normal") && player.lastBullet > 0){
+                    player.lastBullet--;
+                }
+
                 bullets.push(bullet);
                 bulletTimer = 0;
             }else bulletTimer+=timeStamp;
@@ -418,7 +781,7 @@ window.addEventListener('load', function(){
 
     function monkeyEnemyHandler(deltaTime){
         if(monkeyEnemyTimer > monkeyEnemyInterval + monkeyRandomEnemyInterval){
-            if(bossLv >= 1){
+            if(bossLv >= 2){
                 const monkeyEnemy = new MonkeyEnemy(canvas.width, canvas.height);
                 const monkeySpeed = Math.floor(Math.random()*monkeyEnemy.speed);
                 if(monkeySpeed < 6) monkeyEnemy.speed = 6;
@@ -430,7 +793,7 @@ window.addEventListener('load', function(){
 
         monkeyEnemies.forEach((monkey) => {
             monkey.draw(ctx);
-            monkey.update(deltaTime);
+            monkey.update(deltaTime, bullets);
         });
         monkeyEnemies = monkeyEnemies.filter((monkey) => !monkey.markedForDeletion);
     }
@@ -446,7 +809,7 @@ window.addEventListener('load', function(){
         }
         enemies.forEach(enemy => {
             enemy.draw(ctx);
-            enemy.update(deltaTime);
+            enemy.update(deltaTime, bullets);
         });
         enemies = enemies.filter(enemy => !enemy.markedForDeletion);
     }
@@ -469,9 +832,14 @@ window.addEventListener('load', function(){
             context.fillText('GAME OVER, try again!', canvas.width/2 + 2, 202);
         }
     }
+    // items
+    let itemsTimer = 0;
+    let weapon = "normal";
+    
     // bossTimer 
     let bossTimer = 0;
     let bossLv = 0;
+
     // bullet
     let bulletTimer = 0;
     let bulletInterval = 400;
@@ -481,6 +849,11 @@ window.addEventListener('load', function(){
     let enemyTimer = 0;
     let enemyInterval = 600;
     let randomEnemyInterval = Math.random() * 1000 + 500;
+    //munzy 
+    let munzyTimer = 0;
+
+    //kirby
+    let kirbyTimer = 0;
 
     //monkeyenemy
     let monkeyEnemyTimer = 0;
@@ -490,7 +863,6 @@ window.addEventListener('load', function(){
     const input = new InputHandler();
     const player = new Player(canvas.width, canvas.height);
     const background = new Background(canvas.width, canvas.height);
-
     function animate(timeStamp){
         const deltaTime = timeStamp - lastTime;
         lastTime = timeStamp;
@@ -498,11 +870,14 @@ window.addEventListener('load', function(){
         background.draw(ctx);
         background.update();
         player.draw(ctx);
-        player.update(input, deltaTime, enemies, monkeyEnemies, bosses);
+        player.update(input, deltaTime, enemies, monkeyEnemies, bosses, items);
         bossHandler(deltaTime);
+        itemsHandler(deltaTime);
         handleEnemies(deltaTime);
         monkeyEnemyHandler(deltaTime);
-        bulletHandler(deltaTime, player, input)
+        munzyHandler(deltaTime);
+        kirbyHandler(deltaTime);
+        bulletHandler(deltaTime, player, input);
         displayStatusText(ctx);
         if(!gameOver) requestAnimationFrame(animate);
     }
