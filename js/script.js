@@ -75,7 +75,7 @@ window.addEventListener('load', function(){
                 const dx = (boss.x + boss.width/2) - (this.x + this.width/2);
                 const dy = (boss.y + boss.height/2) - (this.y + this.height/2);
                 const distance = Math.sqrt(dx*dx+dy*dy);
-                if(distance < boss.width*0.3 + this.width*0.3){
+                if(distance < boss.width*0.4 + this.width*0.4){
                     gameOver = true;
                 }
             });
@@ -281,34 +281,60 @@ window.addEventListener('load', function(){
         constructor(gameWidth, gameHeight){
             this.gameWidth = gameWidth;
             this.gameHeight = gameHeight;
-            this.width = 400;
+            this.width = 250;
             this.height = 400;
             this.x = this.gameWidth + this.width;
             this.y = this.gameHeight - this.height;
+            this.image = document.getElementById("boss01");
             this.frameX = 0;
+            this.frameY = 0;
             this.maxFrame = 5;
-            this.fps = 15;
+            this.fps = 10;
             this.frameTimer = 0;
             this.frameInterval = 1000/this.fps;
             this.speed = 1;
             this.hp = 100;
             this.markedForDeletion = false;
+            this.hit = false;
         }
 
         draw(context){
-            context.fillRect(this.x, this.y, this.width, this.height);
+            context.drawImage(this.image, this.width*this.frameX, this.height*this.frameY, this.width, this.height, this.x, this.y, this.width, this.height)
         }
-        update(bullets){
+        update(timeStamp, bullets){
+
             bullets.forEach(bullet => {
                 const dx = (bullet.x + bullet.width/2) - (this.x + this.width/2);
                 const dy = (bullet.y + bullet.height/2) - (this.y + this.height/2);
                 const distance = Math.sqrt(dx*dx+dy*dy);
-                if(distance < bullet.width/2 + this.width/2){
+                if(distance < bullet.width*0.6 + this.width*0.6){
                     bullet.markedForDeletion = true;
+                    this.hit = true;
+                    this.frameX = 0;
                     this.hp-=10;
-                    this.x+=3;
+                    this.x+=8;
                 }
             });
+            // sprite animation
+            if(this.frameTimer > this.frameInterval){
+                if(this.hit){
+                    this.frameY = 1;
+                    this.maxFrame = 1;
+                }else {
+                    this.frameY = 0;
+                    this.maxFrame = 5;
+                }
+
+                if(this.frameX >= this.maxFrame){
+                    this.frameX = 0;
+                    this.hit = false;
+                }else this.frameX++;
+                this.frameTimer = 0;
+            }else {
+                this.frameTimer+=timeStamp;
+            }
+            // this.hp
+
             if(this.hp <= 0){
                 this.markedForDeletion = true;
                 score+=5000;
@@ -355,7 +381,7 @@ window.addEventListener('load', function(){
     // enemies.push(new Enemy(canvas.width, canvas.height));
 
     function bossHandler(timeStamp){
-        if(bossTimer == 20){
+        if(bossTimer == 12){
             const boss = new Boss(canvas.width, canvas.height);
             boss.hp = boss.hp+(bossLv*40);
             bosses.push(boss);
@@ -365,7 +391,7 @@ window.addEventListener('load', function(){
 
         bosses.forEach(boss => {
             boss.draw(ctx);
-            boss.update(bullets);
+            boss.update(timeStamp, bullets);
         });
 
         bosses = bosses.filter(boss => !boss.markedForDeletion);
