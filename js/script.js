@@ -418,12 +418,14 @@ window.addEventListener('load', function(){
 
     function monkeyEnemyHandler(deltaTime){
         if(monkeyEnemyTimer > monkeyEnemyInterval + monkeyRandomEnemyInterval){
-            const monkeyEnemy = new MonkeyEnemy(canvas.width, canvas.height);
-            const monkeySpeed = Math.floor(Math.random()*monkeyEnemy.speed);
-            if(monkeySpeed < 6) monkeyEnemy.speed = 6;
-            else monkeyEnemy.speed = monkeySpeed;
-            monkeyEnemies.push(monkeyEnemy);
-            monkeyEnemyTimer = 0;
+            if(bossLv >= 1){
+                const monkeyEnemy = new MonkeyEnemy(canvas.width, canvas.height);
+                const monkeySpeed = Math.floor(Math.random()*monkeyEnemy.speed);
+                if(monkeySpeed < 6) monkeyEnemy.speed = 6;
+                else monkeyEnemy.speed = monkeySpeed;
+                monkeyEnemies.push(monkeyEnemy);
+                monkeyEnemyTimer = 0;
+            }
         }else monkeyEnemyTimer+=deltaTime;
 
         monkeyEnemies.forEach((monkey) => {
@@ -455,6 +457,10 @@ window.addEventListener('load', function(){
         context.fillText('Score: '+score, 20, 50);
         context.fillStyle = 'white';
         context.fillText('Score: '+score, 22, 52);
+        context.fillStyle = 'black';
+        context.fillText('Key : Arrow, a, s',20, 90);
+        context.fillStyle = 'white';
+        context.fillText('Key : Arrow, a, s',22, 92);
         if(gameOver){
             context.textAlign = 'center';
             context.fillStyle = 'black';
@@ -473,12 +479,12 @@ window.addEventListener('load', function(){
     // enemy
     let lastTime = 0;
     let enemyTimer = 0;
-    let enemyInterval = 1000;
+    let enemyInterval = 600;
     let randomEnemyInterval = Math.random() * 1000 + 500;
 
     //monkeyenemy
     let monkeyEnemyTimer = 0;
-    let monkeyEnemyInterval = 3000;
+    let monkeyEnemyInterval = 5000;
     let monkeyRandomEnemyInterval = Math.random() * 1000 + 500;
 
     const input = new InputHandler();
