@@ -59,6 +59,8 @@ window.addEventListener('load', function(){
             this.weight = 1;
             this.doubleJump = false;
             this.lastBullet = 0;
+            this.hp = 30;
+            this.nowHp = this.hp;
         }
         draw(context){
             // context.strokeStyle = 'black';
@@ -67,9 +69,14 @@ window.addEventListener('load', function(){
             // context.arc(this.x + this.width / 2, this.y + this.height/2, this.width/2, 0, Math.PI*2);
             // context.stroke();
             context.drawImage(this.image, this.width * this.frameX, this.height * this.frameY , this.width, this.height, this.x, this.y, this.width, this.height);
+            context.fillStyle = "tomato";
+            context.fillRect((this.x+this.width/2)-this.hp/2, this.y, this.hp, 10);
+            context.fillStyle = "yellow";
+            context.fillRect((this.x+this.width/2)-(this.lastBullet*2)/2, this.y+12, this.lastBullet*2, 7);
             // context.drawImage(이미지, x절단좌표, y절단좌표, 절단폭, 절단높이, this.x, this.y, this.width, this.height);
         }
         update(input, deltaTime, enemies, enemyMonkey, bosses, items){
+            this.hp = this.nowHp * life;
             if(this.lastBullet <= 0){
                 weapon = 'normal';
             }
@@ -90,6 +97,7 @@ window.addEventListener('load', function(){
                 const distance = Math.sqrt(dx*dx+dy*dy);
                 if(distance < boss.width*0.4 + this.width*0.4){
                     gameOver = true;
+                    enemy.markedForDeletion = true;
                 }
             });
 
@@ -101,6 +109,7 @@ window.addEventListener('load', function(){
                 if(distance < monkey.width*0.3 + this.width*0.3){
                     if(!(input.keys.indexOf('ArrowDown') > -1)){
                         gameOver = true;
+                        enemy.markedForDeletion = true;
                     }
                 }
             });
@@ -119,6 +128,7 @@ window.addEventListener('load', function(){
                         enemy.switch = true;
                     }else {
                         gameOver = true;
+                        enemy.markedForDeletion = true;
                     }
                 }
                 if(enemy.x < 0 - enemy.width){
@@ -480,7 +490,7 @@ window.addEventListener('load', function(){
             this.frameTimer = 0;
             this.frameInterval = 1000/this.fps;
             this.speed = 1;
-            this.hp = 100;
+            this.hp = 100+(bossLv*40);
             this.markedForDeletion = false;
             this.hit = false;
         }
@@ -551,7 +561,7 @@ window.addEventListener('load', function(){
             this.markedForDeletion = false;
             this.hit = false;
             this.speed = 0.8;
-            this.hp = 250;
+            this.hp = 250+(bossLv*40);
         }
 
         draw(context){
@@ -604,6 +614,175 @@ window.addEventListener('load', function(){
                     }
                 }
             })
+        }
+    }
+
+    class Edgeworth {
+        constructor(gameWidth, gameHeight){
+            this.gameWidth = gameWidth;
+            this.gameHeight = gameHeight;
+            this.nowStates = {
+                width:400,
+                height:400,
+                maxFrame:9,
+                frameY:0
+            }
+            this.width = this.nowStates.width;
+            this.height = 400;
+            this.x = this.gameWidth;
+            this.y = this.gameHeight - this.height;
+            this.image = document.getElementById("edgeworth");
+            this.frameX = 0;
+            this.frameY = this.nowStates.frameY;
+            this.maxFrame = this.nowStates.maxFrame;
+            this.fps = 5;
+            this.frameTimer = 0;
+            this.frameInterval = 1000/this.fps;
+            this.speed = 2;
+            this.attackTimer = 0;
+            this.attackInterval = 4000;
+            this.states = "normal";
+            this.attackMode = false;
+            this.markedForDeletion = false;
+            this.hp = 500+(bossLv*40);
+            this.nowHp = this.hp;
+        }
+        state(){
+            let nowState = {};
+            if(this.states === "normal"){
+                nowState = {
+                    width:400,
+                    maxFrame:9,
+                    frameY:0,
+                    fps:5
+                };
+            }else if(this.states === "angry"){
+                nowState = {
+                    width:500,
+                    maxFrame:5,
+                    frameY:2,
+                    fps:5
+                };
+            }else if(this.states === "attack"){
+                nowState = {
+                    width:450,
+                    maxFrame:4,
+                    frameY:1,
+                    fps:5
+                };
+            }else if(this.states === "normalHit"){
+                nowState = {
+                    width:400,
+                    maxFrame:3,
+                    frameY:3,
+                    fps:30
+                };
+            }else if(this.states === "angryHit"){
+                nowState = {
+                    width:500,
+                    maxFrame:3,
+                    frameY:5,
+                    fps:30
+                };
+            }else if(this.states === "attackHit"){
+                nowState = {
+                    width:450,
+                    maxFrame:1,
+                    frameY:4,
+                    fps:30
+                };
+            }
+            return nowState;
+        }
+
+        draw(context){
+            context.drawImage(this.image, this.width*this.frameX, this.height*this.frameY, this.width, this.height, this.x, this.y, this.width, this.height);
+            context.fillStyle = 'red';
+            context.fillRect((this.x+this.width/2) - this.hp/2, this.y, this.hp, 20);
+        }
+
+        update(timeStamp){
+            bullets.forEach(bullet => {
+                const dx = (bullet.x + bullet.width/2) - (this.x + this.width/2);
+                const dy = (bullet.y + bullet.height/2) - (this.y + this.height/2);
+                const distance = Math.sqrt(dx*dx+dy*dy);
+                if(distance < bullet.width/2 + this.width/2){
+                    this.hp-=bullet.damage;
+                    bullet.markedForDeletion = true;
+                    if(this.states === "normal") this.states = "normalHit"
+                    else if(this.states === "angry") this.states = "angryHit";
+                    else if(this.states === "attack") this.states = "attackHit";
+                    if(this.hp <= 0){
+                        this.markedForDeletion = true;
+                        score+=5000;
+                    }
+                }
+            });
+
+
+            this.nowStates = this.state();
+            this.width = this.nowStates.width;
+            this.frameY = this.nowStates.frameY;
+            this.maxFrame = this.nowStates.maxFrame;
+            this.fps = this.nowStates.fps;
+
+            if((this.hp > this.nowHp/2) && 
+                this.states!=="attack" && 
+                this.states!=="attackHit" && 
+                this.states!=="normalHit" && 
+                this.states!=="angryHit") this.states = "normal";
+            if((this.hp < this.nowHp/2) && 
+                this.states!=="attack" && 
+                this.states!=="attackHit" && 
+                this.states!=="normalHit" && 
+                this.states!=="angryHit"){
+                this.states = "angry";
+                this.attackInterval = 2000;
+            }
+
+            if(this.frameTimer > this.frameInterval){
+                if(this.frameX >= this.maxFrame){
+                    if(this.states !== "attackHit"){
+                        this.states = "normal";
+                        this.frameX = 0;
+                    }else {
+                        this.states = "attack";
+                    }
+                }else this.frameX++
+                this.frameTimer = 0;
+            }else {
+                this.frameTimer+=timeStamp;
+            }
+
+            this.x-=this.speed;
+
+            if(this.x < this.gameWidth - this.width){
+                this.speed = 0;
+                this.attackMode = true;
+            }
+
+            if(this.attackMode){
+                if(this.attackTimer > this.attackInterval){
+                    this.createEnemy(Math.floor(Math.random()*3));
+                    this.frameX = 0;
+                    this.states = "attack";
+                    this.attackTimer = 0;
+                }else this.attackTimer+=timeStamp;
+            }
+            console.log((this.x < this.gameWidth - this.width));
+            
+        }
+
+        createEnemy(number){
+            let enemy;
+            if(number === 0){
+                enemy = new Enemy(canvas.width, canvas.height);
+            }else if(number === 1){
+                enemy = new Kirby(canvas.width, canvas.height);
+            }else if(number === 2){
+                enemy = new Munzy(canvas.width, canvas.height);
+            }
+            enemies.push(enemy);
         }
     }
     
@@ -711,7 +890,6 @@ window.addEventListener('load', function(){
                 this.speed = 0;
                 if(this.frameTimer > this.frameInterval){
                     this.markedForDeletion = true;
-                    console.log(enemies);
                 }else this.frameTimer+=timeStamp;
             }
             this.x -= this.speed;
@@ -759,12 +937,9 @@ window.addEventListener('load', function(){
         if(bossTimer >= 20){
             let boss;
             bossLv++;
-            if(bossLv%3) {
-                boss = new Boss(canvas.width, canvas.height);
-            }else {
-                boss = new Taxi(canvas.width, canvas.height);
-            }
-            boss.hp = boss.hp+(bossLv*20);
+            if(bossLv%3 === 1) boss = new Boss(canvas.width, canvas.height);
+            else if(bossLv%3 === 2) boss = new Taxi(canvas.width, canvas.height);
+            else if(bossLv%3 === 0) boss = new Edgeworth(canvas.width, canvas.height);
             bosses.push(boss);
             bossTimer = 0;
 
@@ -790,7 +965,6 @@ window.addEventListener('load', function(){
     function bulletHandler(timeStamp, player, input){
         if(input.keys.indexOf('s') > -1){
             if(bulletTimer > bulletInterval){
-                console.log(bulletInterval);
                 const bullet = new Bullet(canvas.width, canvas.height);
                 bullet.x = player.x+player.width;
                 bullet.y = player.y+(player.height/2);
@@ -871,14 +1045,21 @@ window.addEventListener('load', function(){
         context.fillText('Key : Arrow, a, s',20, 90);
         context.fillStyle = 'white';
         context.fillText('Key : Arrow, a, s',22, 92);
-        if(gameOver){
+        if(!gameOver){
+            context.textAlign = 'left';
+        }else {
             context.textAlign = 'center';
             context.fillStyle = 'black';
             context.fillText('GAME OVER, try again', canvas.width/2, 200);
+            context.fillText('Press "r" !!', canvas.width/2, 250);
             context.fillStyle = 'white';
             context.fillText('GAME OVER, try again!', canvas.width/2 + 2, 202);
+            context.fillText('Press "r" !!', canvas.width/2+2, 252);
         }
     }
+    // life
+    let life = 3;
+
     // items
     let itemsTimer = 0;
     let weapon = "normal";
@@ -929,4 +1110,12 @@ window.addEventListener('load', function(){
         if(!gameOver) requestAnimationFrame(animate);
     }
     animate(0);
+    window.addEventListener("keydown", function(e){
+        console.log(e);
+        if(e.key === "r" && gameOver && life > 0 ){
+            gameOver = false;
+            animate(0);
+            life--;
+        }
+    });
 });

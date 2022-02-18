@@ -9,6 +9,6 @@ body {
     border:5px solid white;
 }
 
-#playerImage, #backgroundImage, #enemyImage, #monkeyEnemy, #bullet, #boss01, #items, #munzy, #taxi, #kirby {
+#playerImage, #backgroundImage, #enemyImage, #monkeyEnemy, #bullet, #boss01, #items, #munzy, #taxi, #kirby, #edgeworth {
     display: none;
 }
