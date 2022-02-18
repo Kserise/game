@@ -919,7 +919,7 @@ window.addEventListener('load', function(){
 
     function itemsHandler(timeStamp){
         //(monkeyEnemyInterval*3) + (monkeyRandomEnemyInterval*5)
-        if(itemsTimer > (monkeyEnemyInterval*4) + (monkeyRandomEnemyInterval*5)){
+        if(itemsTimer > (monkeyEnemyInterval*3) + (monkeyRandomEnemyInterval*5)){
             const item = new Items(canvas.width, canvas.height);
             items.push(item);
             itemsTimer = 0;
