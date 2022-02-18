@@ -109,7 +109,7 @@ window.addEventListener('load', function(){
                 if(distance < monkey.width*0.3 + this.width*0.3){
                     if(!(input.keys.indexOf('ArrowDown') > -1)){
                         gameOver = true;
-                        enemy.markedForDeletion = true;
+                        monkey.markedForDeletion = true;
                     }
                 }
             });
