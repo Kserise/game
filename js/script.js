@@ -97,7 +97,7 @@ window.addEventListener('load', function(){
                 const distance = Math.sqrt(dx*dx+dy*dy);
                 if(distance < boss.width*0.4 + this.width*0.4){
                     gameOver = true;
-                    enemy.markedForDeletion = true;
+                    boss.markedForDeletion = true;
                 }
             });
 
