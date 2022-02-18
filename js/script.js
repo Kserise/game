@@ -8,6 +8,7 @@ window.addEventListener('load', function(){
     let bullets = [];
     let bosses = [];
     let items = [];
+    let warning = [];
     let score = 0;
     let gameOver = false;
 
@@ -289,6 +290,8 @@ window.addEventListener('load', function(){
 
         draw(context){
             context.drawImage(this.image, this.width*this.frameX, this.height*this.frameY, this.width, this.height, this.x, this.y, this.width, this.height);
+            context.fillStyle = "red"
+            context.fillRect((this.x+this.width/2)-this.hp/2, this.y, this.hp, 7);
         }
 
         update(timeStamp, bullets){
@@ -680,8 +683,41 @@ window.addEventListener('load', function(){
         }
     }
 
-    // enemies.push(new Enemy(canvas.width, canvas.height));
+    class Warning {
+        constructor(gameWidth, gameHeight){
+            this.gameWidth = gameWidth;
+            this.gameHeight = gameHeight;
+            this.width = 400;
+            this.height = 200;
+            this.x = this.gameWidth;
+            this.y = this.gameHeight - this.height*2;
+            this.fps = 10;
+            this.frameInterval = 30000/this.fps;
+            this.frameTimer = 0;
+            this.speed = 8;
+            this.markedForDeletion = false;
+        }
 
+        draw(context){
+            context.font = '80px Helvetica';
+            context.fillStyle = "red";
+            context.fillRect(this.x, this.y+20, this.width, 10);
+            context.fillText("WARNING", this.x, this.height);
+            context.fillRect(this.x, this.y+120, this.width, 10);
+        }
+
+        update(timeStamp){
+            if(this.x < this.gameWidth/2-this.width/2){
+                this.speed = 0;
+                if(this.frameTimer > this.frameInterval){
+                    this.markedForDeletion = true;
+                    console.log(enemies);
+                }else this.frameTimer+=timeStamp;
+            }
+            this.x -= this.speed;
+        }
+    }
+    // enemies.push(new Enemy(canvas.width, canvas.height));
 
     function kirbyHandler(timeStamp){
         if(bossLv >= 0 && (kirbyTimer > (monkeyEnemyInterval*2) + (monkeyRandomEnemyInterval*2))){
@@ -731,13 +767,24 @@ window.addEventListener('load', function(){
             boss.hp = boss.hp+(bossLv*20);
             bosses.push(boss);
             bossTimer = 0;
+
+            const warningMessage = new Warning(canvas.width, canvas.height);
+            warning.push(warningMessage);
         }
         bosses.forEach(boss => {
             boss.draw(ctx);
             boss.update(timeStamp, bullets);
         });
 
+        warning.forEach(message => {
+            message.draw(ctx);
+            message.update(timeStamp);
+        })
+
+
+
         bosses = bosses.filter(boss => !boss.markedForDeletion);
+        warning = warning.filter(message => !message.markedForDeletion);
     }
 
     function bulletHandler(timeStamp, player, input){
