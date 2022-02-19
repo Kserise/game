@@ -39,6 +39,7 @@ window.addEventListener('load', function(){
         constructor(){
             this.audio = document.getElementById("AudioBackground");
             this.audio.volume = 0.2;
+            this.audio.loop = true;
             this.switch = false;
             this.markedForDeletion = false;
         }
