@@ -22,6 +22,7 @@ body {
 #edgeworth,
 #mainTitle,
 #gameUi,
-#score {
+#score,
+#mainTitleKeys {
     display: none;
 }

@@ -100,6 +100,7 @@ window.addEventListener('load', function(){
             this.x = this.gameWidth;
             this.y = this.gameHeight - this.height;
             this.image = document.getElementById("mainTitle");
+            this.keys = document.getElementById("mainTitleKeys");
             this.speed = 10;
             this.switch = false;
         }
@@ -109,6 +110,8 @@ window.addEventListener('load', function(){
             context.fillRect(0, this.y, this.width, this.height);
             context.drawImage(this.image, this.x, this.y, this.width, this.height); 
             if(this.speed === 0){
+                context.drawImage(this.keys, 0, 0, this.width, this.height);
+
                 context.font = "20px Helvetica";
                 context.fillStyle = "black";
                 context.fillText("Space to", this.width/2, 440);
