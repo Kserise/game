@@ -291,11 +291,12 @@ window.addEventListener('load', function(){
                 this.speed = 5;
             }else if(input.keys.indexOf('ArrowLeft') > -1){
                 this.speed = -5;
-            }else if(input.keys.indexOf('ArrowUp') > -1 && this.onGround()){
-                this.vy -= 18;
             }else{
                 if(this.onGround()) this.doubleJump = false;
                 this.speed = 0;
+            }
+            if(input.keys.indexOf('ArrowUp') > -1 && this.onGround()){
+                this.vy -= 18;
             }
             // 수평움직임
             this.x+=this.speed;
