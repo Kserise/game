@@ -9,8 +9,128 @@ window.addEventListener('load', function(){
     let bosses = [];
     let items = [];
     let warning = [];
+    let audiosList = [
+        "normalWeapon1.wav", 
+        "normalWeapon2.wav", 
+        "stepDeath.wav", 
+        "enemyDeath.wav",
+        "enemyHit.wav",
+        "banana1.wav",
+        "banana2.wav",
+        "hit.wav",
+        "munzyDeath.wav",
+        "munzyGuard.wav",
+        "warning1.mp3",
+        "boss3Attack.wav",
+        "boss3Hit.wav",
+        "getItem.wav",
+        "kirbyHit.wav",
+        "boss01Hit.wav",
+        "taxiHit.wav"
+    ];
+    let audios = [];
+    const backgroundList = ["audio/AudioBackground01.mp3", "audio/AudioBackground02.mp3"];
     let score = 0;
-    let gameOver = false;
+    let gameOver = true;
+    let mainTitleSwitch = true;
+    
+    // audio
+    class AudioBackground {
+        constructor(){
+            this.audio = document.getElementById("AudioBackground");
+            this.audio.volume = 0.2;
+            this.switch = false;
+            this.markedForDeletion = false;
+        }
+
+        update(){
+            if(this.switch){
+                this.audio.src = backgroundList[0];
+            }else {
+                this.audio.src = backgroundList[1];
+            }
+
+            if(!(this.audio.currentTime > 0)) this.audio.play();
+        }
+    }
+
+    class AudioEnemyHit {
+        constructor(src){
+            this.audio = new Audio(src);
+            this.markedForDeletion = false;
+        }
+
+        play(){
+            this.audio.volume = 0.3;
+            this.audio.play();
+        }
+
+        update(){
+            if(this.audio.ended) this.markedForDeletion = true;
+        }
+    }
+
+    function audioCreateHandler(src){
+        if(audios.length < 10){
+            const audio = new AudioEnemyHit("audio/"+src);
+            audios.push(audio);
+        }
+        audios.forEach(sound => {
+            if(!(sound.audio.currentTime > 0)) sound.play();
+        })
+    }
+
+    function audioHandler(){
+        audios.forEach(sound => {
+            sound.update();
+        });
+
+        audios = audios.filter(sound => !sound.markedForDeletion);
+    }
+
+    // main
+
+    class MainTitle {
+        constructor(gameWidth, gameHeight){
+            this.gameWidth = gameWidth;
+            this.gameHeight = gameHeight;
+            this.width = this.gameWidth;
+            this.height = this.gameHeight;
+            this.x = this.gameWidth;
+            this.y = this.gameHeight - this.height;
+            this.image = document.getElementById("mainTitle");
+            this.speed = 10;
+            this.switch = false;
+        }
+
+        draw(context){
+            context.fillStyle = "#9B85B8";
+            context.fillRect(0, this.y, this.width, this.height);
+            context.drawImage(this.image, this.x, this.y, this.width, this.height); 
+            if(this.speed === 0){
+                context.font = "20px Helvetica";
+                context.fillStyle = "black";
+                context.fillText("Space to", this.width/2, 440);
+                context.fillStyle = "white";
+                context.fillText("Space to", this.width/2+2, 442);
+
+                context.font = '40px Helvetica';
+                context.fillStyle = "black";
+                context.fillText("Game Start", this.width/2, 480);
+                context.fillStyle = "white";
+                context.fillText("Game Start", this.width/2+2, 482);
+            }
+        }
+
+        update(){
+            this.x-=this.speed;
+            if(this.x <= 0) this.speed = 0;
+        }
+    }
+
+
+
+    // Objects
 
     class InputHandler {
         constructor(){
@@ -48,6 +168,8 @@ window.addEventListener('load', function(){
             this.x = 0;
             this.y = this.gameHeight - this.height;
             this.image = document.getElementById("playerImage");
+            this.gameUi = document.getElementById("gameUi");
+            this.score = document.getElementById("score");
             this.frameX = 0;
             this.maxFrame = 5;
             this.frameY = 0;
@@ -69,10 +191,21 @@ window.addEventListener('load', function(){
             // context.arc(this.x + this.width / 2, this.y + this.height/2, this.width/2, 0, Math.PI*2);
             // context.stroke();
             context.drawImage(this.image, this.width * this.frameX, this.height * this.frameY , this.width, this.height, this.x, this.y, this.width, this.height);
+            context.drawImage(this.gameUi, 10, 10, 80, 65);
+            context.fillStyle = "black";
+            context.fillRect(95, 30, this.hp+2, 12);
             context.fillStyle = "tomato";
-            context.fillRect((this.x+this.width/2)-this.hp/2, this.y, this.hp, 10);
+            context.fillRect(95, 30, this.hp, 10);
+            context.fillStyle = "black";
+            context.fillRect(95, 55, this.lastBullet*2+2, 9);
             context.fillStyle = "yellow";
-            context.fillRect((this.x+this.width/2)-(this.lastBullet*2)/2, this.y+12, this.lastBullet*2, 7);
+            context.fillRect(95, 55, this.lastBullet*2, 7);
+            context.drawImage(this.score, this.gameWidth-250, 17, 103, 30);
+            context.font = '30px Helvetica';
+            context.fillStyle = "black";
+            context.fillText(" : "+score, this.gameWidth - 148, 44);
+            context.fillStyle = "white";
+            context.fillText(" : "+score, this.gameWidth - 150, 42);
             // context.drawImage(이미지, x절단좌표, y절단좌표, 절단폭, 절단높이, this.x, this.y, this.width, this.height);
         }
         update(input, deltaTime, enemies, enemyMonkey, bosses, items){
@@ -88,6 +221,7 @@ window.addEventListener('load', function(){
                     item.markedForDeletion = true;
                     this.lastBullet += 30; 
                     weapon = "banana";
+                    audioCreateHandler(audiosList[13]);
                 }
             });
             // boss 
@@ -122,6 +256,7 @@ window.addEventListener('load', function(){
                 if(distance < enemy.width*0.3 + this.width*0.3){
                     if(0 < enemy.y - (this.y+81)){
                         enemy.markedForDeletion = true;
+                        audioCreateHandler(audiosList[2]);
                         score+=100;
                         bossTimer++;
                     }else if(this.frameY == 3){
@@ -244,11 +379,13 @@ window.addEventListener('load', function(){
             context.drawImage(this.image, this.width * this.frameX, 0, this.width, this.height, this.x, this.y, this.width, this.height);
         }
         update(deltaTime, bullets){
+            
             bullets.forEach(bullet => {
                 const dx = (bullet.x + bullet.width/2) - (this.x + this.width/2);
                 const dy = (bullet.y + bullet.height/2) - (this.y + this.height/2);
                 const distance = Math.sqrt(dx*dx+dy*dy);
                 if(distance < bullet.width/2 + this.width/2){
+                    audioCreateHandler(audiosList[4]);
                     this.x+=this.speed*3;
                     this.hp -= bullet.damage;
                     bullet.markedForDeletion = true;
@@ -315,7 +452,9 @@ window.addEventListener('load', function(){
                     this.hp-=bullet.damage;
                     this.x+=this.speed*5;
                     bullet.markedForDeletion = true;
+                    audioCreateHandler(audiosList[9]);
                     if(this.hp <= 0){
+                        audioCreateHandler(audiosList[8]);
                         this.markedForDeletion = true;
                     }
                 }
@@ -376,6 +515,7 @@ window.addEventListener('load', function(){
                     this.hit = true;
                     this.vy = 8;
                     this.frameY = 1;
+                    audioCreateHandler(audiosList[14]);
                     bullet.markedForDeletion = true;
                     if(this.hp <= 0){
                         score+=200;
@@ -450,6 +590,7 @@ window.addEventListener('load', function(){
                     if(!(bullet.weapon === "normal")){
                         this.hp-=bullet.damage;
                         this.x += this.speed*5;
+                        audioCreateHandler(audiosList[4]);
                         bullet.markedForDeletion = true;
                         if(this.hp <= 0){
                             this.markedForDeletion = true; 
@@ -512,6 +653,7 @@ window.addEventListener('load', function(){
                     this.hit = true;
                     this.frameX = 0;
                     this.hp-=bullet.damage;
+                    audioCreateHandler(audiosList[15]);
                     this.x+=8;
                 }
             });
@@ -608,6 +750,7 @@ window.addEventListener('load', function(){
                     this.hit = true;
                     this.frameX = 0;
                     this.hp-=bullet.damage;
+                    audioCreateHandler(audiosList[16]);
                     bullet.markedForDeletion = true;
                     if(this.hp <= 0){
                         this.markedForDeletion = true;
@@ -712,6 +855,7 @@ window.addEventListener('load', function(){
                     if(this.states === "normal") this.states = "normalHit"
                     else if(this.states === "angry") this.states = "angryHit";
                     else if(this.states === "attack") this.states = "attackHit";
+                    audioCreateHandler(audiosList[12]);
                     if(this.hp <= 0){
                         this.markedForDeletion = true;
                         score+=5000;
@@ -766,10 +910,10 @@ window.addEventListener('load', function(){
                     this.createEnemy(Math.floor(Math.random()*3));
                     this.frameX = 0;
                     this.states = "attack";
+                    audioCreateHandler(audiosList[11]);
                     this.attackTimer = 0;
                 }else this.attackTimer+=timeStamp;
             }
-            console.log((this.x < this.gameWidth - this.width));
             
         }
 
@@ -935,11 +1079,20 @@ window.addEventListener('load', function(){
 
     function bossHandler(timeStamp){
         if(bossTimer >= 20){
+            audioCreateHandler(audiosList[10]);
             let boss;
             bossLv++;
-            if(bossLv%3 === 1) boss = new Boss(canvas.width, canvas.height);
+            if(bossLv%3 === 1) {
+                boss = new Boss(canvas.width, canvas.height);
+            }
             else if(bossLv%3 === 2) boss = new Taxi(canvas.width, canvas.height);
-            else if(bossLv%3 === 0) boss = new Edgeworth(canvas.width, canvas.height);
+            else if(bossLv%3 === 0){
+                boss = new Edgeworth(canvas.width, canvas.height);
+                if(!audioBackground.switch){
+                    audioBackground.switch = true;
+                    audioBackground.update();
+                }
+            }
             bosses.push(boss);
             bossTimer = 0;
 
@@ -965,6 +1118,7 @@ window.addEventListener('load', function(){
     function bulletHandler(timeStamp, player, input){
         if(input.keys.indexOf('s') > -1){
             if(bulletTimer > bulletInterval){
+                let sound;
                 const bullet = new Bullet(canvas.width, canvas.height);
                 bullet.x = player.x+player.width;
                 bullet.y = player.y+(player.height/2);
@@ -974,6 +1128,7 @@ window.addEventListener('load', function(){
                     bullet.frameY = 1;
                     bullet.maxFrame = 2;
                     bulletInterval = 100;
+                    sound = audiosList[5];
                 }else if(weapon === 'normal'){
                     bullet.damage = 8;
                     bullet.frameY = 0;
@@ -982,6 +1137,7 @@ window.addEventListener('load', function(){
                     if(bulletInterval <= 200){
                         bulletInterval = 200;
                     }
+                    sound = audiosList[0];
                 }
                 if(!(weapon === "normal") && player.lastBullet > 0){
                     player.lastBullet--;
@@ -989,7 +1145,9 @@ window.addEventListener('load', function(){
 
                 bullets.push(bullet);
                 bulletTimer = 0;
+                audioCreateHandler(sound);
             }else bulletTimer+=timeStamp;
+            console.log(audios);
         }
 
         bullets.forEach((bullet) => {
@@ -1036,18 +1194,10 @@ window.addEventListener('load', function(){
     }
 
     function displayStatusText(context){
-        context.font = '40px Helvetica';
-        context.fillStyle = 'black';
-        context.fillText('Score: '+score, 20, 50);
-        context.fillStyle = 'white';
-        context.fillText('Score: '+score, 22, 52);
-        context.fillStyle = 'black';
-        context.fillText('Key : Arrow, a, s',20, 90);
-        context.fillStyle = 'white';
-        context.fillText('Key : Arrow, a, s',22, 92);
         if(!gameOver){
             context.textAlign = 'left';
         }else {
+            context.font = '40px Helvetica';
             context.textAlign = 'center';
             context.fillStyle = 'black';
             context.fillText('GAME OVER, try again', canvas.width/2, 200);
@@ -1057,6 +1207,9 @@ window.addEventListener('load', function(){
             context.fillText('Press "r" !!', canvas.width/2+2, 252);
         }
     }
+    //timer
+    let timer = 0;
+
     // life
     let life = 3;
 
@@ -1091,6 +1244,8 @@ window.addEventListener('load', function(){
     const input = new InputHandler();
     const player = new Player(canvas.width, canvas.height);
     const background = new Background(canvas.width, canvas.height);
+    const audioBackground = new AudioBackground();
+    const mainTitle = new MainTitle(canvas.width, canvas.height);
     function animate(timeStamp){
         const deltaTime = timeStamp - lastTime;
         lastTime = timeStamp;
@@ -1107,15 +1262,27 @@ window.addEventListener('load', function(){
         kirbyHandler(deltaTime);
         bulletHandler(deltaTime, player, input);
         displayStatusText(ctx);
+        audioHandler();
         if(!gameOver) requestAnimationFrame(animate);
     }
+
+    function mainTitleAnimation(){
+        mainTitle.draw(ctx);
+        mainTitle.update();
+        if(gameOver) requestAnimationFrame(mainTitleAnimation);
+    }
     animate(0);
+    mainTitleAnimation();
     window.addEventListener("keydown", function(e){
-        console.log(e);
-        if(e.key === "r" && gameOver && life > 0 ){
+        if(e.key === "r" && gameOver && life > 0 && !mainTitleSwitch){
             gameOver = false;
             animate(0);
             life--;
+        }if(e.key === " " && mainTitleSwitch){
+            audioBackground.update();
+            gameOver = false;
+            mainTitleSwitch = false;
+            animate(0);
         }
     });
 });
