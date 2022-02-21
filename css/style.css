@@ -23,6 +23,8 @@ body {
 #mainTitle,
 #gameUi,
 #score,
-#mainTitleKeys {
+#mainTitleKeys,
+#finn,
+#jake {
     display: none;
 }

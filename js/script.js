@@ -181,6 +181,7 @@ window.addEventListener('load', function(){
             this.frameTimer = 0;
             this.frameInterval = 1000/this.fps;
             this.speed = 0;
+            this.sticky = false;
             this.vy = 0;
             this.weight = 1;
             this.doubleJump = false;
@@ -257,18 +258,35 @@ window.addEventListener('load', function(){
                 const dx = (enemy.x+enemy.width/2) - (this.x+this.width/2);
                 const dy = (enemy.y+enemy.height/2) - (this.y+this.height/2);
                 const distance = Math.sqrt(dx * dx + dy * dy);
-                if(distance < enemy.width*0.3 + this.width*0.3){
-                    if(0 < enemy.y - (this.y+81)){
-                        enemy.markedForDeletion = true;
-                        audioCreateHandler(audiosList[2]);
-                        score+=100;
-                        bossTimer++;
-                    }else if(this.frameY == 3){
-                        enemy.switch = true;
-                    }else {
-                        gameOver = true;
-                        enemy.markedForDeletion = true;
+                let stepOn;
+                if(enemy.stepOn){
+                    stepOn = enemy.width*0.3 + this.width*0.3;
+                    if(distance < stepOn){
+                        if((0 < enemy.y - (this.y+81)) && enemy.stepOn){
+                            enemy.markedForDeletion = true;
+                            audioCreateHandler(audiosList[2]);
+                            score+=100;
+                            bossTimer++;
+                        }else if(!enemy.stepOn){
+                            enemy.sticky = true;
+                            this.sticky =  true;
+                        }else if(this.frameY == 3){
+                            enemy.switch = true;
+                        }else {
+                            gameOver = true;
+                            enemy.markedForDeletion = true;
+                        }
                     }
+                }else {
+                    stepOn = enemy.width*0.6 + this.width*0.6;
+                    if(distance < stepOn){
+                        enemy.sticky = true;
+                        this.sticky =  true;
+                    }else if(enemy.sticky){
+                        this.sticky = false;
+                        enemy.sticky = false;
+                    }
+                
                 }
                 if(enemy.x < 0 - enemy.width){
                     enemy.markedForDeletion = true;
@@ -287,10 +305,15 @@ window.addEventListener('load', function(){
             }
 
             // controls
+            let nowSpeed;
+            if(this.sticky) nowSpeed = 1;
+            else nowSpeed = 5;
+            
+
             if(input.keys.indexOf('ArrowRight') > -1){
-                this.speed = 5;
+                this.speed = nowSpeed;
             }else if(input.keys.indexOf('ArrowLeft') > -1){
-                this.speed = -5;
+                this.speed = -nowSpeed;
             }else{
                 if(this.onGround()) this.doubleJump = false;
                 this.speed = 0;
@@ -374,6 +397,7 @@ window.addEventListener('load', function(){
             this.markedForDeletion = false;
             this.switch = false;
             this.hp = 16;
+            this.stepOn = true;
         }
         draw(context){
             // context.strokeStyle = 'white';
@@ -438,6 +462,7 @@ window.addEventListener('load', function(){
             this.speed = 3;
             this.hp = 100;
             this.hit = false;
+            this.stepOn = true;
         }
 
         draw(context){
@@ -502,6 +527,7 @@ window.addEventListener('load', function(){
             this.speed = 3;
             this.hp = 24;
             this.hit = false;
+            this.stepOn = true;
         }
 
         draw(context){
@@ -616,6 +642,110 @@ window.addEventListener('load', function(){
                 this.markedForDeletion = true;
                 score+=100;
                 bossTimer++;
+            }
+        }
+    }
+
+    class Finn {
+        constructor(gameWidth, gameHeight){
+            this.gameWidth = gameWidth;
+            this.gameHeight = gameHeight;
+            this.width = 30;
+            this.height = 50;
+            this.x = this.gameWidth - this.width;
+            this.y = this.gameHeight - this.height;
+            this.image = document.getElementById("finn");
+            this.frameX = 0;
+            this.frameY = 0;
+            this.maxFrame = 7;
+            this.fps = 12;
+            this.frameTimer = 0;
+            this.frameInterval = 1000/this.fps;
+            this.speed = 4;
+            this.nowSpeed = this.speed;
+            this.sticky = false;
+            this.markedForDeletion = false;
+            this.stepOn = false;
+        }
+
+        draw(context){
+            context.drawImage(this.image, this.width*this.frameX, this.height*this.frameY, this.width, this.height, this.x, this.y, this.width, this.height)
+        }
+
+        update(timeStamp){
+            this.x -= this.speed;
+            this.stickys();
+            if(this.frameTimer > this.frameInterval){
+                if(this.frameX >= this.maxFrame){
+                    this.frameX = 0;
+                }else this.frameX++;
+                this.frameTimer = 0;
+            }else this.frameTimer+=timeStamp;
+        }
+
+        stickys(){
+            if(this.sticky){
+                this.width = 35;
+                this.frameY = 1;
+                this.maxFrame = 1;
+                this.speed = 1;
+            }else {
+                this.width = 30;
+                this.frameY = 0;
+                this.maxFrame = 7;
+                this.speed = this.nowSpeed;
+            }
+        }
+    }
+
+    
+    class Jake {
+        constructor(gameWidth, gameHeight){
+            this.gameWidth = gameWidth;
+            this.gameHeight = gameHeight;
+            this.width = 40;
+            this.height = 50;
+            this.x = this.gameWidth + this.width;
+            this.y = this.gameHeight - this.height;
+            this.image = document.getElementById("jake");
+            this.frameX = 0;
+            this.frameY = 0;
+            this.maxFrame = 7;
+            this.fps = 15;
+            this.frameTimer = 0;
+            this.frameInterval = 1000/this.fps;
+            this.speed = 6;
+            this.nowSpeed = this.speed;
+            this.sticky = false;
+            this.markedForDeletion = false;
+            this.stepOn = false;
+        }
+
+        draw(context){
+            context.drawImage(this.image, this.width*this.frameX, this.height*this.frameY, this.width, this.height, this.x, this.y, this.width, this.height)
+        }
+
+        update(timeStamp){
+            this.x -= this.speed;
+            
+            this.stickys();
+
+            if(this.frameTimer > this.frameInterval){
+                if(this.frameX >= this.maxFrame){
+                    this.frameX = 0;
+                }else this.frameX++;
+            }else this.frameTimer+=timeStamp;
+        }
+
+        stickys(){
+            if(this.sticky){
+                this.frameY = 1;
+                this.maxFrame = 1;
+                this.speed = 1;
+            }else {
+                this.frameY = 0;
+                this.maxFrame = 7;
+                this.speed = this.nowSpeed;
             }
         }
     }
@@ -1046,8 +1176,23 @@ window.addEventListener('load', function(){
     }
     // enemies.push(new Enemy(canvas.width, canvas.height));
 
+    function finnNjake(timeStamp){
+        let random = Math.floor(Math.random()*2);
+        let finnNjake;
+        if(bossLv > 0){
+            if(finnNjakeTimer > enemyInterval*4 + randomEnemyInterval*4){
+                if(random === 0){
+                    finnNjake = new Finn(canvas.width, canvas.height);
+                }else finnNjake = new Jake(canvas.width, canvas.height);
+                finnNjake.speed = Math.floor(Math.random()*9);
+                enemies.push(finnNjake);
+                finnNjakeTimer = 0;
+            }else finnNjakeTimer+=timeStamp;
+        }
+    }
+
     function kirbyHandler(timeStamp){
-        if(bossLv >= 0 && (kirbyTimer > (monkeyEnemyInterval*2) + (monkeyRandomEnemyInterval*2))){
+        if(bossLv > 1 && (kirbyTimer > (monkeyEnemyInterval*2) + (randomEnemyInterval*2))){
             if(bossLv >= 0){
                 const kirby = new Kirby(canvas.width, canvas.height);
                 enemies.push(kirby);
@@ -1057,7 +1202,7 @@ window.addEventListener('load', function(){
     }
 
     function munzyHandler(timeStamp){
-        if(bossLv > 2 && (munzyTimer > (monkeyEnemyInterval) + (monkeyRandomEnemyInterval*2))){
+        if(bossLv > 2 && (munzyTimer > (monkeyEnemyInterval) + (randomEnemyInterval*2))){
             if(bossLv >= 0){
                 const munzy = new Munzy(canvas.width, canvas.height);
                 enemies.push(munzy);
@@ -1067,8 +1212,8 @@ window.addEventListener('load', function(){
     }
 
     function itemsHandler(timeStamp){
-        //(monkeyEnemyInterval*3) + (monkeyRandomEnemyInterval*5)
-        if(itemsTimer > (monkeyEnemyInterval*3) + (monkeyRandomEnemyInterval*5)){
+        //(monkeyEnemyInterval*3) + (randomEnemyInterval*5)
+        if(itemsTimer > (monkeyEnemyInterval*3) + (randomEnemyInterval*5)){
             const item = new Items(canvas.width, canvas.height);
             items.push(item);
             itemsTimer = 0;
@@ -1152,7 +1297,6 @@ window.addEventListener('load', function(){
                 bulletTimer = 0;
                 audioCreateHandler(sound);
             }else bulletTimer+=timeStamp;
-            console.log(audios);
         }
 
         bullets.forEach((bullet) => {
@@ -1164,8 +1308,8 @@ window.addEventListener('load', function(){
     }
 
     function monkeyEnemyHandler(deltaTime){
-        if(monkeyEnemyTimer > monkeyEnemyInterval + monkeyRandomEnemyInterval){
-            if(bossLv >= 2){
+        if(monkeyEnemyTimer > monkeyEnemyInterval + randomEnemyInterval){
+            if(bossLv > 3){
                 const monkeyEnemy = new MonkeyEnemy(canvas.width, canvas.height);
                 const monkeySpeed = Math.floor(Math.random()*monkeyEnemy.speed);
                 if(monkeySpeed < 6) monkeyEnemy.speed = 6;
@@ -1241,10 +1385,12 @@ window.addEventListener('load', function(){
     //kirby
     let kirbyTimer = 0;
 
+    //finnNjake
+    let finnNjakeTimer = 0;
+
     //monkeyenemy
     let monkeyEnemyTimer = 0;
     let monkeyEnemyInterval = 5000;
-    let monkeyRandomEnemyInterval = Math.random() * 1000 + 500;
 
     const input = new InputHandler();
     const player = new Player(canvas.width, canvas.height);
@@ -1265,6 +1411,7 @@ window.addEventListener('load', function(){
         monkeyEnemyHandler(deltaTime);
         munzyHandler(deltaTime);
         kirbyHandler(deltaTime);
+        finnNjake(deltaTime);
         bulletHandler(deltaTime, player, input);
         displayStatusText(ctx);
         audioHandler();
