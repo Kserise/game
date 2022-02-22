@@ -7,6 +7,7 @@ window.addEventListener('load', function(){
     let monkeyEnemies = [];
     let bullets = [];
     let bosses = [];
+    let drakDrageHands = [];
     let items = [];
     let warning = [];
     let audiosList = [
@@ -26,7 +27,16 @@ window.addEventListener('load', function(){
         "getItem.wav",
         "kirbyHit.wav",
         "boss01Hit.wav",
-        "taxiHit.wav"
+        "taxiHit.wav",
+        "dragHit.wav",
+        "dragAttack.wav",
+        "darkDragHandAttack.wav",
+        "darkDragBirdCreate.wav",
+        "darkDragBirdAttack.wav",
+        "darkDragDeath.wav",
+        "taxiDeath.wav",
+        "boss03Death.wav"
+
     ];
     let audios = [];
     const backgroundList = ["audio/AudioBackground01.mp3", "audio/AudioBackground02.mp3"];
@@ -229,12 +239,27 @@ window.addEventListener('load', function(){
                     audioCreateHandler(audiosList[13]);
                 }
             });
+            // darkDrag
+            
+            drakDrageHands.forEach(hand => {
+                const dx = (hand.x + hand.width/2) - (this.x + this.width/2);
+                const dy = (hand.y + hand.height/2) - (this.y + this.height/2);
+                const distance = Math.sqrt(dx*dx+dy*dy);
+
+                if(distance < hand.width*0.3 + this.width*0.3){
+                    if((hand.frameY === 1 && hand.frameX >= 4 && this.onGround()) || hand.attackMode === "attack"){
+                        hand.markedForDeletion = true;
+                        gameOver = true;
+                    }
+                }
+            })
+
             // boss 
             bosses.forEach(boss => {
                 const dx = (boss.x + boss.width/2) - (this.x + this.width/2);
                 const dy = (boss.y + boss.height/2) - (this.y + this.height/2);
                 const distance = Math.sqrt(dx*dx+dy*dy);
-                if(distance < boss.width*0.4 + this.width*0.4){
+                if((distance < boss.width*0.4 + this.width*0.4) && !boss.untouch){
                     gameOver = true;
                     boss.markedForDeletion = true;
                 }
@@ -266,7 +291,9 @@ window.addEventListener('load', function(){
                             enemy.markedForDeletion = true;
                             audioCreateHandler(audiosList[2]);
                             score+=100;
-                            bossTimer++;
+                            if(bosses.length < bossLimit){
+                                bossTimer++;
+                            }
                         }else if(!enemy.stepOn){
                             enemy.sticky = true;
                             this.sticky =  true;
@@ -288,10 +315,12 @@ window.addEventListener('load', function(){
                     }
                 
                 }
-                if(enemy.x < 0 - enemy.width){
+                if((enemy.x < 0 - enemy.width) && enemy.stepOn){
                     enemy.markedForDeletion = true;
                     score+=100;
-                    bossTimer++;
+                    if(bosses.length < bossLimit){
+                        bossTimer++;
+                    }
                 }
             })
             // sprite animation
@@ -361,6 +390,7 @@ window.addEventListener('load', function(){
             this.gameWidth = gameWidth;
             this.gameHeight = gameHeight;
             this.image = document.getElementById('backgroundImage');
+            this.normalImage = document.getElementById('backgroundImage');
             this.x = 0;
             this.y = 0;
             this.width = 2714;
@@ -421,7 +451,9 @@ window.addEventListener('load', function(){
                     if(this.hp <= 0){
                         this.markedForDeletion = true;
                         score+=100;
-                        bossTimer++;
+                        if(bosses.length < bossLimit){
+                            bossTimer++;
+                        }
                     }
                 }
             });
@@ -439,7 +471,9 @@ window.addEventListener('load', function(){
             if(this.x < 0  - this.width || this.x > this.gameWidth+this.width){
                 this.markedForDeletion = true;
                 score+=100;
-                bossTimer++;
+                if(bosses.length < bossLimit){
+                    bossTimer++;
+                }
             }
         }
     }
@@ -551,7 +585,9 @@ window.addEventListener('load', function(){
                     if(this.hp <= 0){
                         score+=200;
                         this.markedForDeletion = true;
-                        bossTimer++;
+                        if(bosses.length < bossLimit){
+                            bossTimer++;
+                        }
                     }
                 }
             });
@@ -641,7 +677,9 @@ window.addEventListener('load', function(){
             if(this.x < 0){
                 this.markedForDeletion = true;
                 score+=100;
-                bossTimer++;
+                if(bosses.length < bossLimit){
+                    bossTimer++;
+                }
             }
         }
     }
@@ -888,7 +926,9 @@ window.addEventListener('load', function(){
                     audioCreateHandler(audiosList[16]);
                     bullet.markedForDeletion = true;
                     if(this.hp <= 0){
+                        audioCreateHandler(audiosList[23]);
                         this.markedForDeletion = true;
+                        score+=5000;
                     }
                 }
             })
@@ -992,6 +1032,7 @@ window.addEventListener('load', function(){
                     else if(this.states === "attack") this.states = "attackHit";
                     audioCreateHandler(audiosList[12]);
                     if(this.hp <= 0){
+                        audioCreateHandler(audiosList[24]);
                         this.markedForDeletion = true;
                         score+=5000;
                     }
@@ -1049,7 +1090,6 @@ window.addEventListener('load', function(){
                     this.attackTimer = 0;
                 }else this.attackTimer+=timeStamp;
             }
-            
         }
 
         createEnemy(number){
@@ -1065,6 +1105,317 @@ window.addEventListener('load', function(){
         }
     }
     
+    class DarkDrag {
+        constructor(gameWidth, gameHeight){
+            this.gameWidth = gameWidth;
+            this.gameHeight = gameHeight;
+            this.width = 280;
+            this.height = 350;
+            this.bodyWidth = 650;
+            this.bodyHeight = 900;
+            this.x = this.gameWidth/2 - this.width/2;
+            this.y = this.gameHeight;
+            this.bodyX = this.gameWidth/2 - this.bodyWidth/2;
+            this.bodyY = - this.gameHeight + this.height*2;
+            this.image = document.getElementById("darkDragHead");
+            this.bodyImage = document.getElementById("darkDragBody");
+            this.bossBackground = document.getElementById("bossBackground");
+            this.bossBackgroundBase = document.getElementById("bossBackgroundBase");
+            this.bgX = 0;
+            this.bgY = 0;
+            this.bgWidth = 2184;
+            this.bgSpeed = 7;
+            this.frameX = 0;
+            this.frameY = 0;
+            this.maxFrame = 3;
+            this.fps = 5;
+            this.bodyFps = 3;
+            this.frameTimer = 0;
+            this.frameInterval = 1000/this.fps;
+            this.bodyFrameX = 0;
+            this.bodyMaxFrame = 5;
+            this.bodyFrameTimer = 0;
+            this.bodyFrameInterval = 1000/this.bodyFps;
+            this.untouch = true;
+            this.speed = 2;
+            this.intro = true;
+            this.attack = "normal";
+            this.attackTimer = 0;
+            this.attackInterval = 5000;
+            this.hp = 1000;
+            this.nowHp = this.hp/2
+        }
+
+        draw(context){
+            context.drawImage(this.bossBackgroundBase, 0, 0, this.gameWidth, this.gameHeight);
+            context.drawImage(this.bodyImage, this.bodyWidth*this.bodyFrameX, 0, this.bodyWidth, this.bodyHeight, this.bodyX, this.bodyY, this.bodyWidth, this.bodyHeight);            context.drawImage
+            context.drawImage(this.bossBackground, this.bgX, this.bgY, this.bgWidth, this.gameHeight);
+            context.drawImage(this.bossBackground, (this.bgX + this.bgWidth) - this.bgSpeed, this.bgY, this.bgWidth, this.gameHeight);
+            context.drawImage(this.image, this.width*this.frameX, this.height*this.frameY, this.width, this.height, this.x, this.y, this.width, this.height);
+            context.fillStyle = "red";
+            context.fillRect((this.x+this.width/2)-this.hp/2, this.y+100, this.hp, 15);
+        }
+
+        update(timeStamp){
+            bullets.forEach(bullet => {
+                const dx = (bullet.x + bullet.width/2) - (this.x + this.width/2);
+                const dy = (bullet.y + bullet.height/2) - (this.y + this.height/2);
+                const distance = Math.sqrt(dx*dx+dy*dy);
+                if(distance < bullet.width*0.65 + this.width*0.65){
+                    bullet.markedForDeletion = true;
+                    audioCreateHandler(audiosList[17])
+                    if(this.attack === "normal") this.attack = "normalHit";
+                    else if(this.attack === "hand") this.attack = "handHit";
+                    else if(this.attack === "summons") this.attack = "summonsHit";
+                    this.mode();
+                    this.hp-=bullet.damage;
+                }
+            });
+
+            this.x = this.gameWidth/2 - this.width/2;
+            this.bgX-=this.bgSpeed;
+            if(this.bgX < 0 - this.bgWidth){
+                this.bgX = 0;
+            }
+        
+            if(this.frameTimer > this.frameInterval){
+                if(this.frameX >= this.maxFrame){
+                    if(this.attack === "handHit") this.attack = "hand";
+                    if(this.attack === "summonsHit") this.attack = "summons";
+                    if(!(this.attack === "normal") && !(this.attack === "handHit") && !(this.attack === "summonsHit")) this.attack = "normal";
+                    this.mode();
+                }else this.frameX++;
+                this.frameTimer = 0;
+            }else this.frameTimer+=timeStamp;
+
+            if(this.bodyFrameTimer > this.bodyFrameInterval){
+                if(this.bodyFrameX >= this.bodyMaxFrame){
+                    this.bodyFrameX = 0;
+                }else this.bodyFrameX++;
+                this.bodyFrameTimer = 0;
+            }else this.bodyFrameTimer+=timeStamp;
+            
+            if(this.intro){
+                this.y-=this.speed;
+                this.bodyY-=this.speed;
+            }
+
+            if(this.y <= this.gameHeight/2 - this.height/2 - 100){
+                this.intro = false;
+            }
+
+            if(!this.intro && this.attackTimer > this.attackInterval){
+                const vari = Math.floor(Math.random()*2);
+                if(vari === 0) this.attack = "hand";
+                else if(vari === 1) this.attack = "summons";
+                audioCreateHandler(audiosList[18]);
+                this.mode();
+                this.createEnemy();
+                this.attackTimer = 0;
+            }else {
+                this.attackTimer+=timeStamp;
+            }
+
+            if(this.hp <= 0){
+                this.markedForDeletion = true;
+                score+=10000;
+                audioCreateHandler(audiosList[22]);
+            }else if(this.hp < this.nowHp){
+                this.attackInterval = 3000;
+            }
+
+        }
+
+        mode(){
+            if(this.attack === "normal"){
+                this.width = 280;
+                this.frameX = 0;
+                this.frameY = 0;
+                this.maxFrame = 3;
+                this.frameTimer = 0;
+                this.fps = 5;
+                this.frameInterval = 1000/this.fps;
+            }else if(this.attack === "hand"){
+                this.width = 280;
+                this.frameX = 0;
+                this.frameY = 1;
+                this.frameTimer = 0;
+                this.maxFrame = 4;
+                this.fps = 5;
+                this.frameInterval = 1000/this.fps;
+            }else if(this.attack === "summons"){
+                this.width = 320;
+                this.frameX = 0;
+                this.frameY = 2;
+                this.frameTimer = 0;
+                this.maxFrame = 4;
+                this.fps = 3;
+                this.frameInterval = 1000/this.fps;
+            }else if(this.attack === "normalHit"){
+                this.width = 280;
+                this.frameY = 3;
+                this.maxFrame = 1;
+                this.frameTimer = 0;
+                this.fps = 15;
+                this.frameInterval = 1000/this.fps;
+            }else if(this.attack === "handHit"){
+                this.width = 280;
+                this.frameY = 4;
+                this.frameTimer = 0;
+                this.fps = 15;
+                this.frameInterval = 1000/this.fps;
+            }else if(this.attack === "summonsHit"){
+                this.width = 320;
+                this.frameY = 5;
+                this.frameTimer = 0;
+                this.fps = 15;
+                this.frameInterval = 1000/this.fps;
+            }
+        }
+
+        createEnemy(){
+            let darkDragHand;
+            if(this.attack === "hand"){
+                darkDragHand = new DarkDragHand(canvas.width, canvas.height, player);
+            }else if(this.attack === "summons"){
+                darkDragHand = new DarkDragBird(canvas.width, canvas.height, player);
+            }
+            drakDrageHands.push(darkDragHand);
+        }
+    }
+
+    class DarkDragHand {
+        constructor(gameWidth, gameHeight, player){
+            this.gameWidth = gameWidth;
+            this.gameHeight = gameHeight;
+            this.width = 235;
+            this.height = 350;
+            this.x = player.x+player.width/2-this.width/2;
+            this.y = this.gameHeight - this.height;
+            this.image = document.getElementById("drakDrageHand");
+            this.frameX = 0;
+            this.frameY = 0;
+            this.maxFrame = 5;
+            this.fps = 10;
+            this.frameTimer = 0;
+            this.frameInterval = 1000/this.fps;
+            this.markedForDeletion = false;
+            this.markedCount = 0;
+            this.markedTimer = 0;
+            this.markedInterval = 700;
+            this.attackMode = false;
+            this.stepOn = false;
+        }
+
+        draw(context){
+            context.drawImage(this.image, this.width*this.frameX, this.height*this.frameY, this.width, this.height, this.x, this.y, this.width, this.height);
+        }
+
+        update(timeStamp){
+            if(this.frameTimer > this.frameInterval){
+                if(this.frameX >= this.maxFrame){
+                    if(this.markedCount < 1){
+                        this.frameX = 0;
+                        this.frameY = 1;
+                        this.maxFrame = 4;
+                    }
+                    if(this.markedCount <= 1)  this.markedCount++;
+                }else this.frameX++;
+                this.frameTimer = 0;
+            }this.frameTimer+=timeStamp;
+
+            if(this.markedCount === 2){
+                if(this.markedTimer === 0)audioCreateHandler(audiosList[19]);
+                if(this.markedTimer > this.markedInterval) this.markedForDeletion = true;
+                else this.markedTimer+=timeStamp;
+            }
+        }
+
+    }
+
+    class DarkDragBird {
+        constructor(gameWidth, gameHeight){
+            this.gameWidth = gameWidth;
+            this.gameHeight = gameHeight;
+            this.width = 140;
+            this.height = 140;
+            this.attackHeight = 140;
+            this.x = this.gameWidth - this.width;
+            this.y = 0;
+            this.vy = 0;
+            this.image = document.getElementById("drakDragBird");
+            this.frameX = 0;
+            this.frameY = 0;
+            this.maxFrame = 5;
+            this.fps = 10;
+            this.frameTimer = 0;
+            this.frameInterval = 1000/this.fps;
+            this.markedForDeletion = false;
+            this.speed = 0;
+            this.nowSpeed = Math.round(Math.random()*9);
+            this.attackMode = "normal"
+        }
+
+        draw(context){
+            context.drawImage(this.image, this.width*this.frameX, this.height*this.frameY, this.width, this.attackHeight, this.x, this.y, this.width, this.attackHeight);
+        }
+
+        update(timeStamp){
+            if(this.frameTimer > this.frameInterval){
+                if(this.frameX >= this.maxFrame){
+                    if(this.attackMode === "intro"){
+                        audioCreateHandler(audiosList[20])
+                        this.attackMode = "normal";
+                        this.Mode();
+                    }
+                    else if(this.attackMode === "normal"){
+                        this.attackMode = "normal";
+                        this.Mode();
+                    }
+                    else if(this.attackMode === "attack"){
+                        this.frameX = 9;
+                        if(this.y <= 50) audioCreateHandler(audiosList[21]);
+                        console.log(this.y);
+                    }
+                }else this.frameX++;
+                this.frameTimer = 0;
+            }this.frameTimer+=timeStamp;
+
+            this.x-=this.speed;
+            this.y+=this.vy;
+            if(this.attackMode === "attack" && this.frameX >= 9){
+                this.speed = 2;
+                this.vy = 10;
+            }
+            if(this.y >= this.gameHeight) this.markedForDeletion = true;
+
+            if((this.x < player.x+player.width/2) && this.attackMode === "normal"){
+                this.attackMode = "attack";
+                this.Mode();
+            }
+        }
+
+        Mode(){
+            if(this.attackMode === "normal"){
+                this.frameX = 0;
+                this.frameY = 1;
+                this.maxFrame = 3;
+                this.speed = this.nowSpeed;
+            }else if(this.attackMode === "intro"){
+                this.frameX = 0;
+                this.frameY = 0;
+                this.maxFrame = 5;
+                this.speed = 0;
+            }else if(this.attackMode === "attack"){
+                this.attackHeight = 200;
+                this.frameX = 0;
+                this.frameY = 2;
+                this.maxFrame = 9;
+                this.speed = 0;
+            }
+        }
+    }
+
     class Bullet {
         constructor(gameWidth, gameHeight){
             this.gameWidth = gameWidth;
@@ -1174,8 +1525,17 @@ window.addEventListener('load', function(){
             this.x -= this.speed;
         }
     }
-    // enemies.push(new Enemy(canvas.width, canvas.height));
 
+    function attackHands(timeStamp){
+        drakDrageHands.forEach(hand => {
+            hand.draw(ctx);
+            hand.update(timeStamp);
+        });
+
+        drakDrageHands = drakDrageHands.filter(hand => !hand.markedForDeletion);
+    }
+
+    // enemies.push(new Enemy(canvas.width, canvas.height));
     function finnNjake(timeStamp){
         let random = Math.floor(Math.random()*2);
         let finnNjake;
@@ -1228,20 +1588,24 @@ window.addEventListener('load', function(){
     }
 
     function bossHandler(timeStamp){
-        if(bossTimer >= 20){
+        if(bossTimer >= 15 && bosses.length < bossLimit){
             audioCreateHandler(audiosList[10]);
             let boss;
             bossLv++;
-            if(bossLv%3 === 1) {
+            if(bossLv%4 === 1) { //new Boss(canvas.width, canvas.height);
                 boss = new Boss(canvas.width, canvas.height);
             }
-            else if(bossLv%3 === 2) boss = new Taxi(canvas.width, canvas.height);
-            else if(bossLv%3 === 0){
+            else if(bossLv%4 === 2) boss = new Taxi(canvas.width, canvas.height);
+            else if(bossLv%4 === 3){
                 boss = new Edgeworth(canvas.width, canvas.height);
                 if(!audioBackground.switch){
                     audioBackground.switch = true;
                     audioBackground.update();
                 }
+            }
+            else if(bossLv%4 === 0){ 
+                boss = new DarkDrag(canvas.width, canvas.height);
+                bossLimit++;
             }
             bosses.push(boss);
             bossTimer = 0;
@@ -1360,7 +1724,7 @@ window.addEventListener('load', function(){
     let timer = 0;
 
     // life
-    let life = 3;
+    let life = 10;
 
     // items
     let itemsTimer = 0;
@@ -1369,7 +1733,7 @@ window.addEventListener('load', function(){
     // bossTimer 
     let bossTimer = 0;
     let bossLv = 0;
-
+    let bossLimit = 1;
     // bullet
     let bulletTimer = 0;
     let bulletInterval = 400;
@@ -1403,9 +1767,10 @@ window.addEventListener('load', function(){
         ctx.clearRect(0, 0, canvas.width, canvas.height); 
         background.draw(ctx);
         background.update();
+        bossHandler(deltaTime);
+        attackHands(deltaTime);
         player.draw(ctx);
         player.update(input, deltaTime, enemies, monkeyEnemies, bosses, items);
-        bossHandler(deltaTime);
         itemsHandler(deltaTime);
         handleEnemies(deltaTime);
         monkeyEnemyHandler(deltaTime);

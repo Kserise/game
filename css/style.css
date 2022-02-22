@@ -20,11 +20,17 @@ body {
 #taxi, 
 #kirby, 
 #edgeworth,
+#darkDragBody,
+#darkDragHead,
+#drakDrageHand,
+#drakDragBird,
 #mainTitle,
 #gameUi,
 #score,
 #mainTitleKeys,
 #finn,
-#jake {
+#jake,
+#bossBackground,
+#bossBackgroundBase {
     display: none;
 }
