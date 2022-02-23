@@ -36,6 +36,9 @@ body {
 #iceBlock,
 #iceKing,
 #bossBackground,
-#bossBackgroundBase {
+#bossBackgroundBase,
+#iceBackground1,
+#iceBackground2,
+#iceBackground3 {
     display: none;
 }

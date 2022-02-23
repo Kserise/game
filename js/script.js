@@ -1428,6 +1428,12 @@ window.addEventListener('load', function(){
             this.x = this.gameWidth;
             this.y = this.gameHeight - this.height;
             this.image = document.getElementById("iceKing");
+            this.bgImage1 = document.getElementById("iceBackground1");
+            this.bgImage2 = document.getElementById("iceBackground2");
+            this.bgImage3 = document.getElementById("iceBackground3");
+            this.bg1X = 0;
+            this.bg2X = 0;
+            this.bgSpeed = 7;
             this.frameX = 0;
             this.frameY = 0;
             this.maxFrame = 5;
@@ -1447,6 +1453,11 @@ window.addEventListener('load', function(){
         }
 
         draw(context){
+            context.drawImage(this.bgImage3, 0, 0, this.gameWidth, this.gameHeight);
+            context.drawImage(this.bgImage2, this.bg2X, 0, 1191, this.gameHeight);
+            context.drawImage(this.bgImage2, this.bg2X + 1191, 0, 1191, this.gameHeight);
+            context.drawImage(this.bgImage1, this.bg1X, 0, 811, this.gameHeight);
+            context.drawImage(this.bgImage1, this.bg1X + 811, 0, 811, this.gameHeight);
             context.drawImage(this.image, this.width*this.frameX, this.height*this.frameY, this.width, this.height, this.x, this.y, this.width, this.height);
         }
 
@@ -1493,12 +1504,17 @@ window.addEventListener('load', function(){
             if(this.switch && (this.attackMode === "kick" || this.attackMode === "summons")){
                 this.switch = false;
                 iceKingAttackHandler(this.attackMode);
-                console.log("thi")
                 this.attackMode = "normal"
                 this.mode();
             }
-
-
+            this.bg1X -= this.bgSpeed;
+            this.bg2X -= this.bgSpeed/3;
+            if(this.bg1X <= -811){
+                this.bg1X = 0;
+            }
+            if(this.bg2X <= -1191){
+                this.bg2X = 0;
+            }
         }
 
         mode(){
@@ -1629,7 +1645,7 @@ window.addEventListener('load', function(){
             this.fps = 9;
             this.frameTimer = 0;
             this.frameInterval = 1000/this.fps;
-            this.speed = 3;
+            this.speed = 6;
             this.markedForDeletion = false;
             this.markedTimer = 0;
             this.markedInterval = 1000;
@@ -1840,8 +1856,10 @@ window.addEventListener('load', function(){
 
     function iceKingAttackHandler(attacks){
         let attack;
+        let random = Math.floor(Math.random()*2);
         if(attacks === "summons"){
-            attack = new IceKingPet(canvas.width, canvas.height);
+            if(random === 0) attack = new IceKingPet(canvas.width, canvas.height);
+            else if(random === 1) attack = new IceKingPoop(canvas.width, canvas.height, 200);
         }else if(attacks === "kick"){
             attack = new IceKingEffect(canvas.width, canvas.height, 200);
         }
