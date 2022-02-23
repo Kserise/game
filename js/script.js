@@ -294,9 +294,6 @@ window.addEventListener('load', function(){
                             if(bosses.length < bossLimit){
                                 bossTimer++;
                             }
-                        }else if(!enemy.stepOn){
-                            enemy.sticky = true;
-                            this.sticky =  true;
                         }else if(this.frameY == 3){
                             enemy.switch = true;
                         }else {
@@ -304,7 +301,7 @@ window.addEventListener('load', function(){
                             enemy.markedForDeletion = true;
                         }
                     }
-                }else {
+                }else if(!enemy.stepOn && !enemy.effect){
                     stepOn = enemy.width*0.6 + this.width*0.6;
                     if(distance < stepOn){
                         enemy.sticky = true;
@@ -314,6 +311,12 @@ window.addEventListener('load', function(){
                         enemy.sticky = false;
                     }
                 
+                }else if(enemy.effect){
+                    stepOn = enemy.width*0.3 + this.width*0.3;
+                    if(distance < stepOn){
+                        enemy.markedForDeletion = true;
+                        gameOver = true;
+                    }
                 }
                 if((enemy.x < 0 - enemy.width) && enemy.stepOn){
                     enemy.markedForDeletion = true;
@@ -1416,6 +1419,315 @@ window.addEventListener('load', function(){
         }
     }
 
+    class IceKing {
+        constructor(gameWidth, gameHeight){
+            this.gameWidth = gameWidth;
+            this.gameHeight = gameHeight;
+            this.width = 200;
+            this.height = 220;
+            this.x = this.gameWidth;
+            this.y = this.gameHeight - this.height;
+            this.image = document.getElementById("iceKing");
+            this.frameX = 0;
+            this.frameY = 0;
+            this.maxFrame = 5;
+            this.fps = 10;
+            this.frameTimer = 0;
+            this.frameInterval = 1000/this.fps;
+            this.speed = 2;
+            this.tackleSpeed = 8;
+            this.untouch = false;
+            this.attackSpeed = 10;
+            this.intro = true;
+            this.switch = false;
+            this.attackMode = "normal";
+            this.attackTimer = 0;
+            this.attackInterval = 2000;
+            this.hp = 1000;
+        }
+
+        draw(context){
+            context.drawImage(this.image, this.width*this.frameX, this.height*this.frameY, this.width, this.height, this.x, this.y, this.width, this.height);
+        }
+
+        update(timeStamp){
+            if(this.intro) this.x-=this.speed;
+            else {
+                if(this.attackTimer > this.attackInterval){
+                    let num = Math.floor(Math.random()*2);
+                    if(num === 1) this.attackMode = "summons";
+                    else if(num === 0) this.attackMode = "attackReady";
+                    this.attackTimer = 0;
+                    this.mode();
+                }else this.attackTimer+=timeStamp;
+            }
+
+            if(this.x <= this.gameWidth - this.width) this.intro = false;
+            if(this.frameTimer > this.frameInterval){
+                if(this.frameX >= this.maxFrame){
+                    if(this.attackMode === "kick" || this.attackMode === "summons"){
+                        this.switch = true;
+                    }
+                    if(this.attackMode === "attackReady"){
+                        let num = Math.floor(Math.random()*2);
+                        if(num === 1) this.attackMode = "tackle";
+                        else if(num === 0) this.attackMode = "kick";
+                    }
+                    this.mode();
+                }else this.frameX++;
+                this.frameTimer = 0;
+            }else this.frameTimer+=timeStamp;
+
+            if(this.attackMode === "tackle"){
+                this.attackTimer = 0;
+                this.x-=this.tackleSpeed;
+            }
+
+            if(this.x < 0 - this.width){
+                this.x = this.gameWidth;
+                this.intro = true;
+                this.speed = 4;
+                this.attackMode = "normal";
+            }
+            
+            if(this.switch && (this.attackMode === "kick" || this.attackMode === "summons")){
+                this.switch = false;
+                iceKingAttackHandler(this.attackMode);
+                console.log("thi")
+                this.attackMode = "normal"
+                this.mode();
+            }
+
+
+        }
+
+        mode(){
+            if(this.attackMode === "normal"){
+                this.width = 200;
+                this.height = 220;
+                this.frameX = 0;
+                this.frameY = 0;
+                this.maxFrame = 5;
+            }else if(this.attackMode === "attackReady"){
+                this.width = 200;
+                this.height = 220;
+                this.frameX = 0;
+                this.frameY = 1;
+                this.maxFrame = 9;
+            }else if(this.attackMode === "tackle"){
+                this.width = 200;
+                this.height = 220;
+                this.frameX = 0;
+                this.frameY = 2;
+                this.maxFrame = 5;
+            }else if(this.attackMode === "kick"){
+                this.width = 240;
+                this.height = 220;
+                this.frameX = 0;
+                this.frameY = 3;
+                this.maxFrame = 3;
+            }else if(this.attackMode === "summons"){
+                this.width = 300;
+                this.height = 240;
+                this.frameX = 0;
+                this.frameY = 4;
+                this.maxFrame = 10;
+            }
+        }
+    }
+
+    class IceKingPet {
+        constructor(gameWidth, gameHeight){
+            this.gameWidth = gameWidth;
+            this.gameHeight = gameHeight;
+            this.width = 100;
+            this.height = 100;
+            this.image = document.getElementById("iceKingPet");
+            this.x = this.gameWidth + this.width;
+            this.y = this.gameHeight - this.height;
+            this.frameX = 0;
+            this.frameY = 0;
+            this.maxFrame = 8;
+            this.fps = 9;
+            this.frameTimer = 0;
+            this.frameInterval = 1000/this.fps;
+            this.speed = 6;
+            this.markedForDeletion = false;
+            this.markedTimer = 0;
+            this.markedInterval = 1000;
+            this.switch = false;
+            this.hp = 32;
+            this.stepOn = true;
+        }
+        draw(context){
+            // context.strokeStyle = 'white';
+            // context.strokeRect(this.x, this.y, this.width, this.height);
+            // context.beginPath();
+            // context.arc(this.x + this.width/2, this.y+this.height/2, this.width/2, 0, Math.PI*2);
+            // context.stroke();
+            context.drawImage(this.image, this.width * this.frameX, this.height*this.frameY, this.width, this.height, this.x, this.y, this.width, this.height);
+        }
+        update(deltaTime){
+            bullets.forEach(bullet => {
+                const dx = (bullet.x + bullet.width/2) - (this.x + this.width/2);
+                const dy = (bullet.y + bullet.height/2) - (this.y + this.height/2);
+                const distance = Math.sqrt(dx*dx+dy*dy);
+                if(distance < bullet.width/2 + this.width/2){
+                    audioCreateHandler(audiosList[4]);
+                    this.x+=this.speed*3;
+                    this.hp -= bullet.damage;
+                    bullet.markedForDeletion = true;
+                    if(this.hp <= 0){
+                        this.markedForDeletion = true;
+                        score+=100;
+                        if(bosses.length < bossLimit){
+                            bossTimer++;
+                        }
+                    }
+                }
+            });
+
+
+            if(this.frameTimer > this.frameInterval){
+                if(this.frameX >= this.maxFrame){
+                    if(!this.switch) this.frameX = 0;
+                    else this.speed = 0;
+                }
+                else this.frameX++;
+                this.frameTimer = 0;
+            }else {
+                this.frameTimer += deltaTime;
+            }
+            this.x -= this.speed;
+
+            if((this.x < player.x + player.width*2) && !this.switch){
+                this.frameY = 1;
+                this.frameX = 0;
+                this.switch = true;
+            }
+
+            if(this.speed === 0 && this.switch){
+                if(this.markedTimer > this.markedInterval){
+                    this.markedForDeletion = true;
+                }else this.markedTimer+=deltaTime;
+            }
+        }
+    }
+
+    class IceKingPoop {
+        constructor(gameWidth, gameHeight){
+            this.gameWidth = gameWidth;
+            this.gameHeight = gameHeight;
+            this.width = 100;
+            this.height = 100;
+            this.image = document.getElementById("iceKingPoop");
+            this.x = (player.x + player.width/2) - this.width/2;
+            this.y = 0;
+            this.frameX = 0;
+            this.frameY = 0;
+            this.maxFrame = 7;
+            this.fps = 9;
+            this.frameTimer = 0;
+            this.frameInterval = 1000/this.fps;
+            this.speed = 3;
+            this.markedForDeletion = false;
+            this.markedTimer = 0;
+            this.markedInterval = 1000;
+            this.switch = false;
+            this.hp = 32;
+            this.stepOn = true;
+        }
+        draw(context){
+            // context.strokeStyle = 'white';
+            // context.strokeRect(this.x, this.y, this.width, this.height);
+            // context.beginPath();
+            // context.arc(this.x + this.width/2, this.y+this.height/2, this.width/2, 0, Math.PI*2);
+            // context.stroke();
+            context.drawImage(this.image, this.width * this.frameX, this.height*this.frameY, this.width, this.height, this.x, this.y, this.width, this.height);
+        }
+        update(deltaTime){
+            bullets.forEach(bullet => {
+                const dx = (bullet.x + bullet.width/2) - (this.x + this.width/2);
+                const dy = (bullet.y + bullet.height/2) - (this.y + this.height/2);
+                const distance = Math.sqrt(dx*dx+dy*dy);
+                if(distance < bullet.width/2 + this.width/2){
+                    audioCreateHandler(audiosList[4]);
+                    this.hp -= bullet.damage;
+                    bullet.markedForDeletion = true;
+                    if(this.hp <= 0){
+                        this.markedForDeletion = true;
+                        score+=100;
+                        if(bosses.length < bossLimit){
+                            bossTimer++;
+                        }
+                    }
+                }
+            });
+
+            if(this.frameTimer > this.frameInterval){
+                if(this.frameX >= this.maxFrame){
+                    this.frameX = 0;
+                    this.frameY = 1;
+                    this.maxFrame = 3;
+                    this.switch = true;
+                }
+                else this.frameX++;
+                this.frameTimer = 0;
+            }else {
+                this.frameTimer += deltaTime;
+            }
+
+            if(this.switch) this.y+=this.speed;
+
+            if(this.onGround()) {
+                this.y = this.gameHeight - this.height;
+            }
+
+        }
+
+        onGround(){
+            return this.y >= this.gameHeight - this.height;
+        }
+    }
+
+    class IceKingEffect {
+        constructor(gameWidth, gameHeight, bossWidth){
+            this.gameWidth = gameWidth;
+            this.gameHeight = gameHeight;
+            this.width = 300;
+            this.height = 200;
+            this.x = this.gameWidth - bossWidth;
+            this.y = this.gameHeight - this.height;
+            this.image = document.getElementById("iceKingEffect");
+            this.frameX = 0;
+            this.frameY = 0;
+            this.maxFrame = 2;
+            this.fps = 15;
+            this.frameTimer = 0;
+            this.frameInterval = 1000/this.fps;
+            this.speed = 4;
+            this.switch = false;
+            this.stepOn = false;
+            this.effect = true;
+        }
+
+        draw(context){
+            context.drawImage(this.image, this.width*this.frameX, this.height*this.frameY, this.width, this.height, this.x, this.y, this.width, this.height);
+        }
+
+        update(timeStamp){
+            if(this.frameTimer > this.frameInterval){
+                if(this.frameX >= this.maxFrame){
+                    this.frameX = 1;
+                    this.frameY = 1;
+                }else this.frameX++;
+                this.frameTimer = 0;
+            }else this.frameTimer+=timeStamp;
+
+            this.x -= this.speed;
+        }
+    }
+
     class Bullet {
         constructor(gameWidth, gameHeight){
             this.gameWidth = gameWidth;
@@ -1525,6 +1837,18 @@ window.addEventListener('load', function(){
             this.x -= this.speed;
         }
     }
+
+    function iceKingAttackHandler(attacks){
+        let attack;
+        if(attacks === "summons"){
+            attack = new IceKingPet(canvas.width, canvas.height);
+        }else if(attacks === "kick"){
+            attack = new IceKingEffect(canvas.width, canvas.height, 200);
+        }
+
+        enemies.push(attack);
+    }
+
 
     function attackHands(timeStamp){
         drakDrageHands.forEach(hand => {
@@ -1675,7 +1999,7 @@ window.addEventListener('load', function(){
         if(monkeyEnemyTimer > monkeyEnemyInterval + randomEnemyInterval){
             if(bossLv > 3){
                 const monkeyEnemy = new MonkeyEnemy(canvas.width, canvas.height);
-                const monkeySpeed = Math.floor(Math.random()*monkeyEnemy.speed);
+                const monkeySpeed = Math.ceil(Math.random()*monkeyEnemy.speed);
                 if(monkeySpeed < 6) monkeyEnemy.speed = 6;
                 else monkeyEnemy.speed = monkeySpeed;
                 monkeyEnemies.push(monkeyEnemy);
@@ -1691,14 +2015,17 @@ window.addEventListener('load', function(){
     }
 
     function handleEnemies(deltaTime){
-        if(enemyTimer > enemyInterval + randomEnemyInterval){
-            const enemy = new Enemy(canvas.width, canvas.height);
-            enemy.speed = Math.floor(Math.random()*12);
-            enemies.push(enemy);
-            enemyTimer = 0;
-        }else {
-            enemyTimer += deltaTime;
-        }
+        // if(enemyTimer > enemyInterval + randomEnemyInterval){
+        //     const enemy = new IceKingEffect(canvas.width, canvas.height, 200);
+        //     enemy.speed = Math.round(Math.random()*11);
+        //     if(enemy.speed < 2){
+        //         enemy.speed = 2;
+        //     }
+        //     enemies.push(enemy);
+        //     enemyTimer = 0;
+        // }else {
+        //     enemyTimer += deltaTime;
+        // }
         enemies.forEach(enemy => {
             enemy.draw(ctx);
             enemy.update(deltaTime, bullets);
@@ -1761,6 +2088,8 @@ window.addEventListener('load', function(){
     const background = new Background(canvas.width, canvas.height);
     const audioBackground = new AudioBackground();
     const mainTitle = new MainTitle(canvas.width, canvas.height);
+    const iceKing = new IceKing(canvas.width, canvas.height);
+
     function animate(timeStamp){
         const deltaTime = timeStamp - lastTime;
         lastTime = timeStamp;
@@ -1768,6 +2097,8 @@ window.addEventListener('load', function(){
         background.draw(ctx);
         background.update();
         bossHandler(deltaTime);
+        iceKing.draw(ctx);
+        iceKing.update(deltaTime);
         attackHands(deltaTime);
         player.draw(ctx);
         player.update(input, deltaTime, enemies, monkeyEnemies, bosses, items);
