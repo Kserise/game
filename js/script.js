@@ -8,6 +8,7 @@ window.addEventListener('load', function(){
     let bullets = [];
     let bosses = [];
     let drakDrageHands = [];
+    let platforms = [];
     let items = [];
     let warning = [];
     let audiosList = [
@@ -36,7 +37,17 @@ window.addEventListener('load', function(){
         "darkDragDeath.wav",
         "taxiDeath.wav",
         "boss03Death.wav"
-
+    ];
+    let iceKingAudioList = [
+        "iceKingAttackReady.wav",
+        "iceKingCreate2.wav",
+        "iceKingHit.wav",
+        "iceKingKick.wav",
+        "iceKingPetDeath3.wav",
+        "iceKingPoopCreate.wav",
+        "iceKingPoopOnGround.wav",
+        "iceKingTackle.wav",
+        "iceKingDeath.wav"
     ];
     let audios = [];
     const backgroundList = ["audio/AudioBackground01.mp3", "audio/AudioBackground02.mp3"];
@@ -192,12 +203,16 @@ window.addEventListener('load', function(){
             this.frameInterval = 1000/this.fps;
             this.speed = 0;
             this.sticky = false;
+            this.onPlatForm = false;
             this.vy = 0;
             this.weight = 1;
-            this.doubleJump = false;
+            this.doubleJump = true;
             this.lastBullet = 0;
             this.hp = 30;
             this.nowHp = this.hp;
+            this.hitTimer = 0;
+            this.hitInterval = 3000;
+            this.hitSwitch = false;
         }
         draw(context){
             // context.strokeStyle = 'black';
@@ -228,6 +243,7 @@ window.addEventListener('load', function(){
             if(this.lastBullet <= 0){
                 weapon = 'normal';
             }
+            platformHandler();
             items.forEach(item => {
                 const dx = (item.x + item.width/2) - (this.x + this.width/2);
                 const dy = (item.y + item.height/2) - (this.y + this.height/2);
@@ -259,11 +275,17 @@ window.addEventListener('load', function(){
                 const dx = (boss.x + boss.width/2) - (this.x + this.width/2);
                 const dy = (boss.y + boss.height/2) - (this.y + this.height/2);
                 const distance = Math.sqrt(dx*dx+dy*dy);
-                if((distance < boss.width*0.4 + this.width*0.4) && !boss.untouch){
+                if((distance < boss.width*0.4 + this.width*0.4) && !boss.untouch && !this.hitSwitch){
                     gameOver = true;
-                    boss.markedForDeletion = true;
+                    this.hitSwitch = true;
+                    console.log(this.hitTimer, this.hitInterval);
                 }
             });
+            if(!this.hitSwitch) this.hitTimer = 0;
+            if(this.hitTimer > this.hitInterval && this.hitSwitch){
+                this.hitSwitch = false;
+                this.hitTimer = 0;
+            }else this.hitTimer+=deltaTime;
 
             // monkeys
             enemyMonkey.forEach(monkey => {
@@ -340,18 +362,17 @@ window.addEventListener('load', function(){
             let nowSpeed;
             if(this.sticky) nowSpeed = 1;
             else nowSpeed = 5;
-            
 
             if(input.keys.indexOf('ArrowRight') > -1){
                 this.speed = nowSpeed;
             }else if(input.keys.indexOf('ArrowLeft') > -1){
                 this.speed = -nowSpeed;
             }else{
-                if(this.onGround()) this.doubleJump = false;
                 this.speed = 0;
             }
             if(input.keys.indexOf('ArrowUp') > -1 && this.onGround()){
                 this.vy -= 18;
+                this.onPlatForm = false; // 여기서 펄스로 값을 바꿔줘야 플랫폼위에서 점프가 제대로 동작한다;
             }
             // 수평움직임
             this.x+=this.speed;
@@ -359,11 +380,7 @@ window.addEventListener('load', function(){
             else if(this.x > this.gameWidth - this.width) this.x = this.gameWidth - this.width;
             // 수직움직임
             this.y += this.vy;
-            if(!this.onGround()){
-                this.vy += this.weight;
-                this.maxFrame = 2;
-                this.frameY = 1;
-            }else {
+            if(this.onGround()){
                 if(input.keys.indexOf('ArrowDown') > -1){
                     this.maxFrame = 2;
                     this.frameY = 2;
@@ -377,15 +394,40 @@ window.addEventListener('load', function(){
                     this.maxFrame = 4;
                     this.frameY = 0;
                 }
-                this.vy = 0;
+                this.vy = 0; // 이 개새가 먼저 실행되서 그렇다;
+            }else {
+                this.vy += this.weight;
+                this.maxFrame = 2;
+                this.frameY = 1;
             }
+            
             if(this.y > this.gameHeight - this.height) {
                 this.y = this.gameHeight - this.height
             }
+            
+
         }
         onGround(){
-            return this.y >= this.gameHeight - this.height;
+            return this.onPlatForm || this.y >= this.gameHeight - this.height;
         }
+
+    }
+
+    function platformHandler(){
+        platforms.forEach(platform => {
+            if((player.y+player.height >= platform.y &&
+                player.y+player.height <= platform.y+platform.height &&
+                player.x+player.width/2 >= platform.x &&
+                player.x+player.width/2 <= platform.x+platform.width))
+            {
+                player.onPlatForm = true;
+                player.y = platform.y-player.height;
+            }else player.onPlatForm = false;
+
+            platform.draw(ctx);
+        })
+
+        platforms = platforms.filter(platform => !platform.markedForDeletion);
     }
 
     class Background {
@@ -800,6 +842,7 @@ window.addEventListener('load', function(){
             this.x = this.gameWidth + this.width;
             this.y = this.gameHeight - this.height;
             this.image = document.getElementById("boss01");
+            this.elite = document.getElementById("EliteBoss01");
             this.frameX = 0;
             this.frameY = 0;
             this.maxFrame = 5;
@@ -810,6 +853,7 @@ window.addEventListener('load', function(){
             this.hp = 100+(bossLv*40);
             this.markedForDeletion = false;
             this.hit = false;
+            this.stepOn = true;
         }
 
         draw(context){
@@ -856,6 +900,9 @@ window.addEventListener('load', function(){
             if(this.hp <= 0){
                 this.markedForDeletion = true;
                 score+=5000;
+                if(bosses.length < bossLimit){
+                    bossTimer+=2;
+                }
             }
             this.x-=this.speed;
         }
@@ -870,6 +917,7 @@ window.addEventListener('load', function(){
             this.x = this.gameWidth + this.width;
             this.y = this.gameHeight - this.height;
             this.image = document.getElementById("taxi");
+            this.elite = document.getElementById("EliteTaxi");
             this.frameX = 0;
             this.frameY = 0;
             this.maxFrame = 10;
@@ -880,6 +928,7 @@ window.addEventListener('load', function(){
             this.hit = false;
             this.speed = 0.8;
             this.hp = 250+(bossLv*40);
+            this.stepOn = true;
         }
 
         draw(context){
@@ -932,6 +981,9 @@ window.addEventListener('load', function(){
                         audioCreateHandler(audiosList[23]);
                         this.markedForDeletion = true;
                         score+=5000;
+                        if(bosses.length < bossLimit){
+                            bossTimer+=2;
+                        }
                     }
                 }
             })
@@ -1378,7 +1430,6 @@ window.addEventListener('load', function(){
                     else if(this.attackMode === "attack"){
                         this.frameX = 9;
                         if(this.y <= 50) audioCreateHandler(audiosList[21]);
-                        console.log(this.y);
                     }
                 }else this.frameX++;
                 this.frameTimer = 0;
@@ -1428,6 +1479,8 @@ window.addEventListener('load', function(){
             this.x = this.gameWidth;
             this.y = this.gameHeight - this.height;
             this.image = document.getElementById("iceKing");
+            this.normalImage = document.getElementById("iceKing");
+            this.hitImage = document.getElementById("iceKingHit");
             this.bgImage1 = document.getElementById("iceBackground1");
             this.bgImage2 = document.getElementById("iceBackground2");
             this.bgImage3 = document.getElementById("iceBackground3");
@@ -1450,6 +1503,11 @@ window.addEventListener('load', function(){
             this.attackTimer = 0;
             this.attackInterval = 2000;
             this.hp = 1000;
+            this.markedForDeletion = false;
+            this.untouch = false;
+            this.createPlatform = false;
+            this.hitTimer = 0;
+            this.hitSwitch = false;
         }
 
         draw(context){
@@ -1462,12 +1520,62 @@ window.addEventListener('load', function(){
         }
 
         update(timeStamp){
-            if(this.intro) this.x-=this.speed;
+            bullets.forEach(bullet => {
+                const dx = (bullet.x + bullet.width/2) - (this.x + this.width/2);
+                const dy = (bullet.y + bullet.height/2) - (this.y + this.height/2);
+                const distance = Math.sqrt(dx*dx+dy*dy);
+
+                if(distance < bullet.width/2 + this.width/2){
+                    this.hp-=bullet.damage;
+                    bullet.markedForDeletion = true;
+                    audioCreateHandler(iceKingAudioList[2]);
+                    this.hitSwitch = true;
+                }
+
+                if(this.hp <= 0){
+                    this.markedForDeletion = true;
+                    audioCreateHandler(iceKingAudioList[8]);
+                    platforms[0].markedForDeletion = true;
+                    enemies = [];
+                    score+=5000;
+                }
+            });
+
+            if(this.hitSwitch){
+                this.image = this.hitImage;
+            }else this.image = this.normalImage
+
+            if(this.hitSwitch && this.frameTimer > this.frameInterval){
+                if(this.hitTimer >= 2){
+                    this.hitSwitch = false;
+                    this.hitTimer = 0
+                }
+                else this.hitTimer++
+            }
+
+            if(!this.createPlatform){
+                const platform = new Platform(canvas.width, canvas.height);
+                platforms.push(platform);
+                this.createPlatform = true;
+            }
+
+
+
+            if(this.intro){
+                this.x-=this.speed;
+                this.attackSwitch = false;
+            }
             else {
                 if(this.attackTimer > this.attackInterval){
                     let num = Math.floor(Math.random()*2);
-                    if(num === 1) this.attackMode = "summons";
-                    else if(num === 0) this.attackMode = "attackReady";
+                    if(num === 1){
+                        this.attackMode = "summons";
+                        audioCreateHandler(iceKingAudioList[1]);
+                    }
+                    else if(num === 0){ 
+                        this.attackMode = "attackReady";
+                        audioCreateHandler(iceKingAudioList[0]);
+                    }
                     this.attackTimer = 0;
                     this.mode();
                 }else this.attackTimer+=timeStamp;
@@ -1481,8 +1589,14 @@ window.addEventListener('load', function(){
                     }
                     if(this.attackMode === "attackReady"){
                         let num = Math.floor(Math.random()*2);
-                        if(num === 1) this.attackMode = "tackle";
-                        else if(num === 0) this.attackMode = "kick";
+                        if(num === 1){
+                            this.attackMode = "tackle";
+                            audioCreateHandler(iceKingAudioList[7]);
+                        }
+                        else if(num === 0){
+                            this.attackMode = "kick";
+                            audioCreateHandler(iceKingAudioList[3]);
+                        }
                     }
                     this.mode();
                 }else this.frameX++;
@@ -1524,30 +1638,75 @@ window.addEventListener('load', function(){
                 this.frameX = 0;
                 this.frameY = 0;
                 this.maxFrame = 5;
+                this.fps = 10;
+                this.frameInterval = 1000/this.fps;
             }else if(this.attackMode === "attackReady"){
                 this.width = 200;
                 this.height = 220;
                 this.frameX = 0;
                 this.frameY = 1;
                 this.maxFrame = 9;
+                this.fps = 10;
+                this.frameInterval = 1000/this.fps;
             }else if(this.attackMode === "tackle"){
                 this.width = 200;
                 this.height = 220;
                 this.frameX = 0;
                 this.frameY = 2;
                 this.maxFrame = 5;
+                this.fps = 10;
+                this.frameInterval = 1000/this.fps;
             }else if(this.attackMode === "kick"){
                 this.width = 240;
                 this.height = 220;
                 this.frameX = 0;
                 this.frameY = 3;
                 this.maxFrame = 3;
+                this.fps = 10;
+                this.frameInterval = 1000/this.fps;
             }else if(this.attackMode === "summons"){
                 this.width = 300;
                 this.height = 240;
                 this.frameX = 0;
                 this.frameY = 4;
                 this.maxFrame = 10;
+                this.fps = 10;
+                this.frameInterval = 1000/this.fps;
+            }else if(this.attackMode === "normalHit"){
+                this.width = 200;
+                this.height = 220;
+                this.frameY = 6;
+                this.fps = 15;
+                this.frameInterval = 1000/this.fps;
+                this.frameTimer = 0;
+            }else if(this.attackMode === "attackReadyHit"){
+                this.width = 200;
+                this.height = 220;
+                this.frameY = 7;
+                this.fps = 15;
+                this.frameInterval = 1000/this.fps;
+                this.frameTimer = 0;
+            }else if(this.attackMode === "tackleHit"){
+                this.width = 200;
+                this.height = 220;
+                this.frameY = 8;
+                this.fps = 15;
+                this.frameInterval = 1000/this.fps;
+                this.frameTimer = 0;
+            }else if(this.attackMode === "kickHit"){
+                this.width = 240;
+                this.height = 220;
+                this.frameY = 9;
+                this.fps = 15;
+                this.frameInterval = 1000/this.fps;
+                this.frameTimer = 0;
+            }else if(this.attackMode === "summonsHit"){
+                this.width = 300;
+                this.height = 240;
+                this.frameY = 11;
+                this.fps = 15;
+                this.frameInterval = 1000/this.fps;
+                this.frameTimer = 0;
             }
         }
     }
@@ -1574,6 +1733,7 @@ window.addEventListener('load', function(){
             this.switch = false;
             this.hp = 32;
             this.stepOn = true;
+            this.audioSwitch = false;
         }
         draw(context){
             // context.strokeStyle = 'white';
@@ -1622,6 +1782,12 @@ window.addEventListener('load', function(){
                 this.switch = true;
             }
 
+            if(this.frameY === 1 && this.frameX >= 4 && !this.audioSwitch){
+                this.audioSwitch = true;
+                audioCreateHandler(iceKingAudioList[4]);
+
+            }
+
             if(this.speed === 0 && this.switch){
                 if(this.markedTimer > this.markedInterval){
                     this.markedForDeletion = true;
@@ -1652,6 +1818,8 @@ window.addEventListener('load', function(){
             this.switch = false;
             this.hp = 32;
             this.stepOn = true;
+            this.audioSwitch = false;
+            this.audioSwitch2 = false;
         }
         draw(context){
             // context.strokeStyle = 'white';
@@ -1680,6 +1848,11 @@ window.addEventListener('load', function(){
                 }
             });
 
+            if(!this.audioSwitch){
+                this.audioSwitch = true;
+                audioCreateHandler(iceKingAudioList[5]);
+            }
+
             if(this.frameTimer > this.frameInterval){
                 if(this.frameX >= this.maxFrame){
                     this.frameX = 0;
@@ -1696,6 +1869,10 @@ window.addEventListener('load', function(){
             if(this.switch) this.y+=this.speed;
 
             if(this.onGround()) {
+                if(!this.audioSwitch2){
+                    this.audioSwitch2 = true;
+                    audioCreateHandler(iceKingAudioList[6]);
+                }
                 this.y = this.gameHeight - this.height;
             }
 
@@ -1741,6 +1918,22 @@ window.addEventListener('load', function(){
             }else this.frameTimer+=timeStamp;
 
             this.x -= this.speed;
+        }
+    }
+
+    class Platform {
+        constructor(gameWidth, gameHeight){
+            this.gameWidth = gameWidth;
+            this.gameHeight = gameHeight;
+            this.width = 180;
+            this.height = 60;
+            this.x = this.gameWidth/2 - this.width/2;
+            this.y = 300;
+            this.image = document.getElementById("iceBlock");
+        }
+
+        draw(context){
+            context.drawImage(this.image, this.x, this.y, this.width, this.height);
         }
     }
 
@@ -1894,11 +2087,9 @@ window.addEventListener('load', function(){
     }
 
     function kirbyHandler(timeStamp){
-        if(bossLv > 1 && (kirbyTimer > (monkeyEnemyInterval*2) + (randomEnemyInterval*2))){
-            if(bossLv >= 0){
-                const kirby = new Kirby(canvas.width, canvas.height);
-                enemies.push(kirby);
-            }
+        if(bossLv >= 1 && (kirbyTimer > (monkeyEnemyInterval*2) + (randomEnemyInterval*2))){
+            const kirby = new Kirby(canvas.width, canvas.height);
+            enemies.push(kirby);
             kirbyTimer = 0;
         }else kirbyTimer+=timeStamp;
     }
@@ -1929,25 +2120,43 @@ window.addEventListener('load', function(){
         items = items.filter(item => !item.markedForDeletion);
     }
 
+    function eliteEnemy(timeStamp){
+        if(bossLv >= 5){
+            let num = Math.floor(Math.random()*2)
+            let boss;
+            if(eliteEnemyTimer > eliteEnemyInterval){
+                if(num === 0) boss = new Boss(canvas.width, canvas.height);
+                else if(num === 1) boss = new Taxi(canvas.width, canvas.height);
+                boss.hp = 80;
+                boss.image = boss.elite;
+                enemies.push(boss);
+                eliteEnemyTimer = 0;
+            }else eliteEnemyTimer+=timeStamp;
+        }
+    }
+
     function bossHandler(timeStamp){
-        if(bossTimer >= 15 && bosses.length < bossLimit){
+        if(bossTimer >= 20 && bosses.length < bossLimit){
             audioCreateHandler(audiosList[10]);
             let boss;
             bossLv++;
-            if(bossLv%4 === 1) { //new Boss(canvas.width, canvas.height);
+            if(bossLv%5 === 1) { //new Boss(canvas.width, canvas.height);
                 boss = new Boss(canvas.width, canvas.height);
+                enemyInterval = 800;
             }
-            else if(bossLv%4 === 2) boss = new Taxi(canvas.width, canvas.height);
-            else if(bossLv%4 === 3){
+            else if(bossLv%5 === 2) boss = new Taxi(canvas.width, canvas.height);
+            else if(bossLv%5 === 3){
                 boss = new Edgeworth(canvas.width, canvas.height);
                 if(!audioBackground.switch){
                     audioBackground.switch = true;
                     audioBackground.update();
                 }
             }
-            else if(bossLv%4 === 0){ 
+            else if(bossLv%5 === 4){ 
+                boss = new IceKing(canvas.width, canvas.height);
+                enemyInterval = 1800;
+            }else if(bossLv%5 === 0){
                 boss = new DarkDrag(canvas.width, canvas.height);
-                bossLimit++;
             }
             bosses.push(boss);
             bossTimer = 0;
@@ -2033,17 +2242,19 @@ window.addEventListener('load', function(){
     }
 
     function handleEnemies(deltaTime){
-        // if(enemyTimer > enemyInterval + randomEnemyInterval){
-        //     const enemy = new IceKingEffect(canvas.width, canvas.height, 200);
-        //     enemy.speed = Math.round(Math.random()*11);
-        //     if(enemy.speed < 2){
-        //         enemy.speed = 2;
-        //     }
-        //     enemies.push(enemy);
-        //     enemyTimer = 0;
-        // }else {
-        //     enemyTimer += deltaTime;
-        // }
+        let enemy;
+        if(enemyTimer > enemyInterval + randomEnemyInterval){
+            if(bossLv >= 4) enemy = new IceKingPet(canvas.width, canvas.height, 200);
+            else enemy = new Enemy(canvas.width, canvas.height, 200);
+            enemy.speed = Math.round(Math.random()*11);
+            if(enemy.speed < 2){
+                enemy.speed = 2;
+            }
+            enemies.push(enemy);
+            enemyTimer = 0;
+        }else {
+            enemyTimer += deltaTime;
+        }
         enemies.forEach(enemy => {
             enemy.draw(ctx);
             enemy.update(deltaTime, bullets);
@@ -2086,8 +2297,14 @@ window.addEventListener('load', function(){
     // enemy
     let lastTime = 0;
     let enemyTimer = 0;
-    let enemyInterval = 600;
+    let enemyInterval = 800;
     let randomEnemyInterval = Math.random() * 1000 + 500;
+
+    // eliteEnemy
+    
+    let eliteEnemyTimer = 0;
+    let eliteEnemyInterval = 5000 + (Math.random() * 5000);
+
     //munzy 
     let munzyTimer = 0;
 
@@ -2106,7 +2323,6 @@ window.addEventListener('load', function(){
     const background = new Background(canvas.width, canvas.height);
     const audioBackground = new AudioBackground();
     const mainTitle = new MainTitle(canvas.width, canvas.height);
-    const iceKing = new IceKing(canvas.width, canvas.height);
 
     function animate(timeStamp){
         const deltaTime = timeStamp - lastTime;
@@ -2115,9 +2331,8 @@ window.addEventListener('load', function(){
         background.draw(ctx);
         background.update();
         bossHandler(deltaTime);
-        iceKing.draw(ctx);
-        iceKing.update(deltaTime);
         attackHands(deltaTime);
+        eliteEnemy(deltaTime);
         player.draw(ctx);
         player.update(input, deltaTime, enemies, monkeyEnemies, bosses, items);
         itemsHandler(deltaTime);
